@@ -1,1 +1,1 @@
-# klipper-config
+# klipper_config
