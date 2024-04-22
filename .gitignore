@@ -1,3 +1,4 @@
 .fluidd.json
 .fluidd_console_history.json
 printer-*.cfg
+.moonraker.conf.bkp
