@@ -19,7 +19,7 @@ klipper_config/
         ├── printer.cfg
         ├── ldo-upstream-printer.cfg  # unused vendor reference copy — not [include]'d by printer.cfg, kept for comparison against upstream
         ├── ldo-picobilical.cfg
-        ├── homing.cfg
+        ├── sensorless_homing.cfg
         ├── moonraker.conf
         ├── telegram.conf
         └── macros -> ../../macros
