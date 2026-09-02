@@ -3,6 +3,7 @@
   gather_facts: true
   roles:
     - base
+    - security
     - klipper_config_repo
     - klipper
     - moonraker
@@ -12,3 +13,4 @@
     - moonraker_telegram_bot
     - klipper_tmc_autotune
     - shaketune
+    - firewall

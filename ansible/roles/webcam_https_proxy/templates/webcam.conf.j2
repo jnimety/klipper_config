@@ -16,6 +16,6 @@ server {
         proxy_ignore_headers X-Accel-Buffering;
         access_log off;
         error_log off;
-        proxy_pass http://127.0.0.1:8080/;
+        proxy_pass http://127.0.0.1:{{ webcam_port }}/;
     }
 }

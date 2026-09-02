@@ -1,0 +1,61 @@
+---
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+  become: true
+
+# Base ports every printer needs: SSH, and Moonraker's port/ssl_port
+# (both printers' moonraker.conf hardcode 7125/7130 -- see CLAUDE.md).
+# webcam_port is added when crowsnest itself is reachable directly
+# (webcam_no_proxy: true); 443 is added when webcam_https_proxy fronts
+# it instead (vs-146) -- see group_vars/all.yml / host_vars/*.yml.
+- name: Compute this printer's allowed tcp ports
+  ansible.builtin.set_fact:
+    firewall_tcp_ports: >-
+      {{
+        [22, 7125, 7130]
+        + ([webcam_port] if webcam_no_proxy else [])
+        + ([443] if webcam_https_proxy | default(false) else [])
+      }}
+
+- name: Render nftables ruleset
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    mode: "0640"
+    validate: "nft -c -f %s"
+  become: true
+  register: nftables_conf
+
+# A ruleset mistake (wrong port, wrong trusted range) would otherwise
+# silently lock out SSH to a headless Pi with no console access. This
+# schedules an unconditional flush (fully open) a few minutes out;
+# it's cancelled below once this same ansible run proves the new
+# ruleset didn't break the connection it's running over.
+- name: Schedule a safety-net firewall rollback
+  ansible.builtin.command: >-
+    systemd-run --unit=nftables-safety-net --on-active=3min
+    /usr/sbin/nft flush ruleset
+  become: true
+  changed_when: true
+  when: nftables_conf.changed
+
+- name: Apply nftables ruleset
+  ansible.builtin.systemd:
+    name: nftables
+    state: "{{ 'restarted' if nftables_conf.changed else 'started' }}"
+    enabled: true
+  become: true
+
+- name: Confirm SSH access survived the new ruleset
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+  when: nftables_conf.changed
+
+- name: Cancel the safety-net rollback now that access is confirmed
+  ansible.builtin.command: systemctl stop nftables-safety-net.timer
+  become: true
+  changed_when: true
+  failed_when: false
+  when: nftables_conf.changed

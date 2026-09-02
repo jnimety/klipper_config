@@ -1,0 +1,57 @@
+#!/usr/sbin/nft -f
+# Managed by ansible (roles/firewall) -- do not edit by hand, changes will
+# be overwritten on the next playbook run.
+
+flush ruleset
+
+table inet filter {
+	set trusted_v4 {
+		type ipv4_addr
+		flags interval
+		# Same LAN/link-local ranges as moonraker.conf's [authorization]
+		# trusted_clients on both printers -- keep in sync with that file.
+		elements = { {{ firewall_trusted_v4 | join(', ') }} }
+	}
+
+	set trusted_v6 {
+		type ipv6_addr
+		flags interval
+		elements = { {{ firewall_trusted_v6 | join(', ') }} }
+	}
+
+	chain input {
+		type filter hook input priority filter; policy drop;
+
+		iif "lo" accept
+		ct state invalid drop
+		ct state established,related accept
+
+		# IPv6 neighbor discovery/router advertisement -- IPv6 breaks
+		# without these regardless of trust source. Echo-request kept
+		# on both families for LAN ping/troubleshooting.
+		icmp type { echo-request, destination-unreachable, time-exceeded, parameter-problem } accept
+		ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, nd-redirect, echo-request } accept
+
+		# DHCPv4 client lease renewal replies
+		udp dport 68 accept
+
+		# mDNS (avahi) -- <hostname>.local resolution from other LAN hosts
+		udp dport 5353 accept
+
+		# SSH, Moonraker (port/ssl_port from moonraker.conf), and this
+		# printer's webcam access -- see group_vars/all.yml and
+		# host_vars/<hostname>.yml for how tcp_ports is assembled.
+		ip saddr @trusted_v4 tcp dport { {{ firewall_tcp_ports | join(', ') }} } accept
+		ip6 saddr @trusted_v6 tcp dport { {{ firewall_tcp_ports | join(', ') }} } accept
+
+		log prefix "nft-drop-input: " flags all limit rate 5/minute
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+
+	chain output {
+		type filter hook output priority filter; policy accept;
+	}
+}
