@@ -1,0 +1,20 @@
+---
+- name: Clone Klippain Shake&Tune
+  ansible.builtin.git:
+    repo: "{{ klippain_shaketune_repo_url }}"
+    dest: "{{ ansible_env.HOME }}/klippain_shaketune"
+    version: main
+    update: false
+
+# Not become:true -- same as klipper_tmc_autotune, script rejects EUID 0
+# and sudos internally for restarting klipper/moonraker. Its add_updater
+# step is idempotent (greps moonraker.conf before appending) and already a
+# no-op here since [update_manager Klippain-ShakeTune] is already committed
+# in both printers' moonraker.conf.
+- name: Run Klippain Shake&Tune's installer
+  ansible.builtin.command: ./install.sh
+  args:
+    chdir: "{{ ansible_env.HOME }}/klippain_shaketune"
+    creates: "{{ klipper_home }}/klippy/extras/shaketune"
+  environment:
+    KLIPPER_VENV: "{{ klippy_env }}"

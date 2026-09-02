@@ -1,0 +1,96 @@
+---
+- name: Clone crowsnest
+  ansible.builtin.git:
+    repo: "{{ crowsnest_repo_url }}"
+    dest: "{{ ansible_env.HOME }}/crowsnest"
+    version: master
+    update: false
+
+# crowsnest's own Makefile comment says "needs leading sudo" -- its
+# install.sh checks $SUDO_USER and rejects being run *as* root directly
+# (as opposed to via sudo), so become:true here (not internal sudo calls
+# like the moonraker/klipper_tmc_autotune/shaketune installers).
+# CROWSNEST_ADD_CROWSNEST_MOONRAKER=1 appends an [update_manager crowsnest]
+# block to moonraker.conf the same way Shake&Tune's installer already added
+# the [update_manager Klippain-ShakeTune] block that's committed in this
+# repo today -- expect a moonraker.conf diff after the first run.
+- name: Run crowsnest's unattended installer
+  ansible.builtin.command: bash tools/install.sh
+  args:
+    chdir: "{{ ansible_env.HOME }}/crowsnest"
+    creates: /etc/systemd/system/crowsnest.service
+  become: true
+  environment:
+    CROWSNEST_UNATTENDED: "1"
+    CROWSNEST_ADD_CROWSNEST_MOONRAKER: "1"
+    BASE_USER: "{{ ansible_user_id }}"
+    SUDO_USER: "{{ ansible_user_id }}"
+
+# The installer wrote crowsnest.conf (and possibly touched moonraker.conf)
+# as root; both live under printer_data/config, which is this git repo's
+# working tree -- hand them back to the printer user so `git status`/commits
+# there don't need sudo.
+- name: Check ownership targets exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ printer_data }}/config/crowsnest.conf"
+    - "{{ printer_data }}/config/moonraker.conf"
+  register: cfg_stats
+
+- name: Restore ownership of crowsnest-touched config files
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+  loop: "{{ cfg_stats.results }}"
+  when: item.stat.exists
+  become: true
+
+- name: Set webcam mode in crowsnest.conf
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^mode:'
+    line: "mode: {{ webcam_mode }}"
+  notify: restart crowsnest
+
+- name: Set webcam device in crowsnest.conf
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^device:'
+    line: "device: {{ webcam_device }}"
+  notify: restart crowsnest
+
+- name: Set webcam resolution in crowsnest.conf
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^resolution:'
+    line: "resolution: {{ webcam_resolution }}"
+  notify: restart crowsnest
+
+- name: Set webcam max_fps in crowsnest.conf
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^max_fps:'
+    line: "max_fps: {{ webcam_max_fps }}"
+  notify: restart crowsnest
+
+# crowsnest defaults to binding the stream to 127.0.0.1, assuming a reverse
+# proxy sits in front of it. Mainsail/Fluidd run off-host and need to reach
+# the stream directly -- webcam_no_proxy is true by default (group_vars)
+# for that. vs-146 overrides it back to false in its own host_vars, since
+# its webcam_https_proxy role is the reverse proxy in that one case.
+- name: Set no_proxy in crowsnest.conf so the stream binds to 0.0.0.0
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^no_proxy:'
+    line: "no_proxy: {{ webcam_no_proxy | lower }}"
+  notify: restart crowsnest
+
+- name: Set webcam custom_flags in crowsnest.conf
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/crowsnest.conf"
+    regexp: '^#?custom_flags:'
+    line: "custom_flags: {{ webcam_custom_flags }}"
+  when: webcam_custom_flags | length > 0
+  notify: restart crowsnest

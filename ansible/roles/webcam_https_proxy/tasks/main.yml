@@ -1,0 +1,32 @@
+# Only enabled where host_vars sets webcam_https_proxy: true (see
+# host_vars/klipper-vs-146.yml) -- Moonraker's API/websocket already
+# terminates its own HTTPS natively on ssl_port, so this vhost's only job
+# is putting the webcam stream (crowsnest has no TLS of its own) back
+# behind HTTPS at the same /webcam/ path it was on before, reusing
+# Moonraker's own certs. No static file serving, no API proxying, no
+# webcam2-4 -- just the one thing nginx is actually needed for here.
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+  become: true
+- name: Remove nginx default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  notify: reload nginx
+- name: Install webcam-only TLS proxy vhost
+  ansible.builtin.template:
+    src: webcam.conf.j2
+    dest: /etc/nginx/sites-available/webcam
+    mode: "0644"
+  become: true
+  notify: reload nginx
+- name: Enable webcam vhost
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/webcam
+    dest: /etc/nginx/sites-enabled/webcam
+    state: link
+  become: true
+  notify: reload nginx

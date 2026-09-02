@@ -1,0 +1,6 @@
+printer_name: klipper-v0
+
+# No camera attached yet (confirmed via ssh: no CSI camera detected, no
+# UVC device in lsusb) -- crowsnest still installs fine and picks up the
+# group_vars/all.yml ustreamer defaults; crowsnest.conf's device: just
+# won't have anything to stream from until one is plugged in.

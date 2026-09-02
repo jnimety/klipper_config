@@ -1,0 +1,73 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - ca-certificates
+      - avahi-daemon
+      - virtualenv
+      - python3-virtualenv
+      - python3-dev
+      - python3-pip
+    state: present
+  become: true
+
+# tty: klipper_host_mcu's pty is owned root:tty (see repo README's
+# ldo-picobilical.cfg notes on [mcu rpi]/ADXL345 host-MCU setup).
+# dialout: serial access to the main/toolhead MCU boards.
+# gpio/i2c: raspi-config-managed hardware interfaces.
+# video: the USB webcam device node crowsnest/ustreamer reads from.
+- name: Add {{ ansible_user_id }} to hardware access groups
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    groups:
+      - dialout
+      - tty
+      - gpio
+      - i2c
+      - video
+    append: true
+  become: true
+  register: user_groups_changed
+
+- name: Check current SPI interface state
+  ansible.builtin.command: raspi-config nonint get_spi
+  become: true
+  register: spi_state
+  changed_when: false
+
+# Both printers' [mcu rpi] section needs SPI (BLTouch/gpio wiring on
+# klipper-vs-146, the Picobilical's onboard ADXL345 on klipper-v0).
+- name: Enable SPI interface
+  ansible.builtin.command: raspi-config nonint do_spi 0
+  become: true
+  when: spi_state.stdout | trim == "1"
+  register: spi_enabled
+
+- name: Create printer_data directory skeleton
+  ansible.builtin.file:
+    path: "{{ printer_data }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - config
+    - logs
+    - gcodes
+    - comms
+    - certs
+    - systemd
+    - backup
+
+- name: Reboot if an interface/group change requires it
+  ansible.builtin.reboot:
+  become: true
+  when: >
+    reboot_if_required and
+    ((spi_enabled is defined and spi_enabled.changed) or user_groups_changed.changed)

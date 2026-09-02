@@ -1,0 +1,43 @@
+---
+# See ../../../README.md "Deploying to a printer" -- this role automates
+# that runbook's clone + symlink-swap steps for first-time bootstrap.
+
+- name: Check current state of printer_data/config
+  ansible.builtin.stat:
+    path: "{{ printer_data }}/config"
+  register: config_path
+
+- name: Clone klipper_config repo
+  ansible.builtin.git:
+    repo: "{{ klipper_config_repo_url }}"
+    dest: "{{ klipper_config_home }}"
+    version: main
+    update: false
+
+- name: Back up existing non-symlink printer_data/config
+  ansible.builtin.command: >
+    mv {{ printer_data }}/config {{ printer_data }}/config.bak-{{ ansible_date_time.iso8601_basic_short }}
+  args:
+    removes: "{{ printer_data }}/config"
+  when: config_path.stat.exists and not config_path.stat.islnk
+
+- name: Symlink printer_data/config to this printer's tracked config
+  ansible.builtin.file:
+    src: "{{ klipper_config_home }}/printers/{{ printer_name }}"
+    dest: "{{ printer_data }}/config"
+    state: link
+    force: true
+
+- name: Check whether host-local secrets.conf is present
+  ansible.builtin.stat:
+    path: "{{ printer_data }}/config/secrets.conf"
+  register: secrets_conf
+
+- name: Warn if secrets.conf is missing
+  ansible.builtin.debug:
+    msg: >-
+      secrets.conf not found at {{ printer_data }}/config/secrets.conf.
+      It's gitignored and host-local (see the repo's CLAUDE.md "Secrets"
+      section) -- copy it forward manually before moonraker-telegram-bot
+      can authenticate.
+  when: not secrets_conf.stat.exists

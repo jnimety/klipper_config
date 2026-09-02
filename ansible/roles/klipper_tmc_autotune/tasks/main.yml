@@ -1,0 +1,17 @@
+---
+- name: Clone klipper_tmc_autotune
+  ansible.builtin.git:
+    repo: "{{ klipper_tmc_autotune_repo_url }}"
+    dest: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
+    version: main
+    update: false
+
+# Not become:true -- the script rejects running as EUID 0 and calls sudo
+# itself for the one step that needs it (restarting klipper). It doesn't
+# touch moonraker.conf; the [update_manager klipper_tmc_autotune] block is
+# already committed in each printer's moonraker.conf.
+- name: Run klipper_tmc_autotune's installer
+  ansible.builtin.command: ./install.sh
+  args:
+    chdir: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
+    creates: "{{ klipper_home }}/klippy/extras/autotune_tmc.py"

@@ -6,6 +6,7 @@ Klipper/Moonraker configuration for two printers, tracked in one repo.
 
 ```
 klipper_config/
+├── ansible/                  # provisions a fresh Pi with prerequisites (Klipper/Moonraker/web UI/webcam/plugins) — see ansible/README.md
 ├── macros/                   # shared, hardware-agnostic gcode macros + client macro pack
 │   ├── debug.cfg              # DUMP_PARAMETERS
 │   └── mainsail.cfg           # stock Mainsail client macros (PAUSE/RESUME/CANCEL_PRINT), used by both printers

@@ -1,0 +1,76 @@
+---
+# Package list and the dmesg_restrict tweak below match the upstream
+# scripts/install.sh's install_packages/fix_permissions steps exactly.
+# The rest of that script is hand-rolled here instead of invoked directly
+# because it's interactive (read -p prompts for instance count, config
+# path, venv rebuild) with no documented non-interactive flags -- this
+# role instead does exactly what the single-instance path of that script
+# does, which is what this repo's already-committed telegram.conf
+# (one file directly under printer_data/config, not a printer_1/ subdir)
+# assumes.
+- name: Install moonraker-telegram-bot dependencies
+  ansible.builtin.apt:
+    name:
+      - python3-virtualenv
+      - python3-numpy
+      - libuv1
+      - ffmpeg
+      - x264
+      - libx264-dev
+      - libjpeg62-turbo-dev
+      - libwebp-dev
+    state: present
+  become: true
+
+- name: Relax kernel.dmesg_restrict (matches upstream installer's fix_permissions step)
+  ansible.builtin.copy:
+    content: "kernel.dmesg_restrict = 0\n"
+    dest: /etc/sysctl.d/51-dmesg-restrict.conf
+    mode: "0644"
+  become: true
+
+- name: Apply sysctl setting immediately
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/51-dmesg-restrict.conf
+  become: true
+  changed_when: false
+
+- name: Clone moonraker-telegram-bot
+  ansible.builtin.git:
+    repo: "{{ moonraker_telegram_bot_repo_url }}"
+    dest: "{{ ansible_env.HOME }}/moonraker-telegram-bot"
+    version: master
+    update: false
+
+- name: Create scratch TMPDIR used by pip during bot install
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/space"
+    state: directory
+    mode: "0755"
+
+- name: Create moonraker-telegram-bot virtualenv and install dependencies
+  ansible.builtin.pip:
+    requirements: "{{ ansible_env.HOME }}/moonraker-telegram-bot/scripts/requirements.txt"
+    virtualenv: "{{ ansible_env.HOME }}/moonraker-telegram-bot-env"
+    virtualenv_command: virtualenv
+    virtualenv_python: python3
+    virtualenv_site_packages: true
+  environment:
+    TMPDIR: "{{ ansible_env.HOME }}/space"
+
+- name: Install moonraker-telegram-bot.service
+  ansible.builtin.template:
+    src: moonraker-telegram-bot.service.j2
+    dest: /etc/systemd/system/moonraker-telegram-bot.service
+    mode: "0644"
+  become: true
+
+# Starts even without secrets.conf in place -- Restart=always just retries,
+# matching upstream's own behavior. See klipper_config_repo role's warning
+# about copying secrets.conf forward.
+- name: Enable and start moonraker-telegram-bot
+  ansible.builtin.systemd:
+    name: moonraker-telegram-bot.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

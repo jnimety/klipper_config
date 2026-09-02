@@ -1,0 +1,5 @@
+- name: restart crowsnest
+  ansible.builtin.systemd:
+    name: crowsnest.service
+    state: restarted
+  become: true

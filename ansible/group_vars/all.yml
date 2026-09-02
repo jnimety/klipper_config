@@ -1,0 +1,49 @@
+---
+ansible_user: jnimety
+ansible_python_interpreter: /usr/bin/python3
+
+# Standard Moonraker "data folder" layout -- see
+# https://moonraker.readthedocs.io/en/latest/installation/#data-folder-structure
+printer_data: "{{ ansible_env.HOME }}/printer_data"
+
+klipper_home: "{{ ansible_env.HOME }}/klipper"
+klippy_env: "{{ ansible_env.HOME }}/klippy-env"
+moonraker_home: "{{ ansible_env.HOME }}/moonraker"
+moonraker_env: "{{ ansible_env.HOME }}/moonraker-env"
+
+klipper_repo_url: https://github.com/Klipper3d/klipper.git
+moonraker_repo_url: https://github.com/Arksine/moonraker.git
+crowsnest_repo_url: https://github.com/mainsail-crew/crowsnest.git
+moonraker_telegram_bot_repo_url: https://github.com/nlef/moonraker-telegram-bot.git
+klipper_tmc_autotune_repo_url: https://github.com/andrewmcgr/klipper_tmc_autotune.git
+klippain_shaketune_repo_url: https://github.com/Frix-x/klippain-shaketune.git
+
+# This repo itself -- cloned to the host and symlinked into
+# ~/printer_data/config, same as the manual runbook in ../README.md.
+# SSH clone means the host needs its own key authorized as a GitHub
+# deploy key (or switch to an HTTPS URL) -- see ansible/README.md.
+klipper_config_repo_url: git@github.com:jnimety/klipper_config.git
+klipper_config_home: "{{ ansible_env.HOME }}/klipper_config"
+
+# crowsnest.conf defaults -- generic USB/UVC webcam via ustreamer.
+# /dev/video0 is rarely stable across reboots once more than one USB
+# device is plugged in. After the first run, check `ls -l
+# /dev/v4l/by-id/` on the host and override webcam_device in this
+# printer's host_vars with the by-id path instead.
+# A CSI camera (Pi Camera Module etc.) needs mode: camera-streamer and a
+# libcamera device path instead -- see host_vars/klipper-vs-146.yml.
+webcam_mode: ustreamer
+webcam_device: /dev/video0
+webcam_resolution: "640x480"
+webcam_max_fps: 15
+webcam_custom_flags: ""
+
+# No printer has nginx in front of it -- Mainsail/Fluidd run off-host and
+# reach the stream directly, so it needs to bind to all interfaces, not
+# just localhost (crowsnest's own default, meant for reverse-proxy setups).
+webcam_no_proxy: true
+
+# Set true (globally or per-host) to let the base role reboot automatically
+# when enabling SPI requires it. Left off by default since that's a
+# disruptive action this playbook shouldn't take without being asked.
+reboot_if_required: false

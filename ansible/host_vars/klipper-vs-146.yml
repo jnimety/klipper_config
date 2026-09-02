@@ -1,0 +1,29 @@
+printer_name: klipper-vs-146
+# Raspberry Pi Camera Module v2.1 (IMX219, CSI ribbon), not a USB webcam --
+# crowsnest's camera-streamer backend takes the libcamera path directly as
+# `device:` and auto-detects --camera-type=libcamera from the /base/soc
+# prefix. Values below match the hand-rolled camera-streamer.service this
+# host was running before crowsnest replaced it (see git log / ansible
+# session notes) -- same resolution, fps, and image flags.
+webcam_mode: camera-streamer
+webcam_device: /base/soc/i2c0mux/i2c@1/imx219@10
+webcam_resolution: "1640x1232"
+webcam_max_fps: 30
+# crowsnest's own flag-building (libs/camera-streamer.sh) unconditionally
+# hardcodes --camera-snapshot.height=1080 and never sets --camera-nbufs/
+# --camera-video.height/--camera-stream.height at all -- unlike the
+# original hand-rolled service, which set all four to match the actual
+# 1232 capture height. Confirmed root cause of WebRTC producing zero
+# video RTP packets despite a fully connected transport (MJPG tolerated
+# the mismatch fine): the hardcoded 1080 snapshot height conflicting with
+# the 1232 video/stream height broke the H.264 encoder pipeline. custom_flags
+# is appended after crowsnest's own flags, so this --camera-snapshot.height
+# here overrides the earlier 1080 one (confirmed via a manual foreground
+# run that omitted it entirely, which also worked -- last value wins).
+webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-stream.height=1232 --camera-snapshot.height=1232 --camera-options=brightness=0.1 --camera-hflip --camera-vflip"
+# nginx (webcam_https_proxy role) is the external-facing side of the
+# webcam again, at the same /webcam/ HTTPS path this host used to serve
+# before crowsnest replaced its camera-streamer setup -- so crowsnest
+# itself goes back to localhost-only, matching the original architecture.
+webcam_no_proxy: false
+webcam_https_proxy: true

@@ -1,0 +1,14 @@
+- name: Configure Klipper host prerequisites
+  hosts: printers
+  gather_facts: true
+  roles:
+    - base
+    - klipper_config_repo
+    - klipper
+    - moonraker
+    - crowsnest
+    - role: webcam_https_proxy
+      when: webcam_https_proxy | default(false)
+    - moonraker_telegram_bot
+    - klipper_tmc_autotune
+    - shaketune

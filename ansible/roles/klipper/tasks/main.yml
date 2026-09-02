@@ -1,0 +1,88 @@
+---
+- name: Install Klipper build dependencies
+  ansible.builtin.apt:
+    name:
+      - git
+      - python3-virtualenv
+      - python3-dev
+      - libffi-dev
+      - build-essential
+      - libncurses-dev
+      - libusb-1.0-0-dev
+      - pkg-config
+      - avrdude
+      - gcc-avr
+      - binutils-avr
+      - avr-libc
+      - stm32flash
+      - dfu-util
+      - libnewlib-arm-none-eabi
+      - gcc-arm-none-eabi
+      - binutils-arm-none-eabi
+    state: present
+  become: true
+
+# update: false -- upgrades are the repo README's own runbook
+# ("Upgrading Klipper firmware"), which also has to juggle per-target
+# .config files. This role's job is "make sure it's present", not
+# "keep it current".
+- name: Clone Klipper
+  ansible.builtin.git:
+    repo: "{{ klipper_repo_url }}"
+    dest: "{{ klipper_home }}"
+    version: master
+    update: false
+
+- name: Create klippy-env and install klippy Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ klipper_home }}/scripts/klippy-requirements.txt"
+    virtualenv: "{{ klippy_env }}"
+    virtualenv_command: virtualenv
+    virtualenv_python: python3
+
+# Matches the KIAUH-style EnvironmentFile+$KLIPPER_ARGS convention both
+# printers were already using before this playbook existed -- notably
+# -I .../klippy.serial (Klipper's printer pseudo-tty for console/legacy
+# tooling access), which a from-scratch hardcoded ExecStart here would
+# otherwise silently drop.
+- name: Install klipper.env
+  ansible.builtin.template:
+    src: klipper.env.j2
+    dest: "{{ printer_data }}/systemd/klipper.env"
+    mode: "0644"
+
+- name: Install klipper.service
+  ansible.builtin.template:
+    src: klipper.service.j2
+    dest: /etc/systemd/system/klipper.service
+    mode: "0644"
+  become: true
+
+# Verbatim copy of klipper/scripts/klipper-mcu.service -- backs the
+# [mcu rpi] host-Linux-process target both printers use. Enabling it is
+# harmless before the linux klipper_mcu binary exists: its own
+# ConditionFileIsExecutable=/usr/local/bin/klipper_mcu skips the start
+# cleanly until that binary is built + flashed manually per the repo
+# README's "Upgrading Klipper firmware" runbook -- not this playbook's job.
+- name: Install klipper-mcu.service (host [mcu rpi] target)
+  ansible.builtin.copy:
+    src: klipper-mcu.service
+    dest: /etc/systemd/system/klipper-mcu.service
+    mode: "0644"
+  become: true
+
+- name: Enable and start klipper.service
+  ansible.builtin.systemd:
+    name: klipper.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+
+- name: Enable and start klipper-mcu.service
+  ansible.builtin.systemd:
+    name: klipper-mcu.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

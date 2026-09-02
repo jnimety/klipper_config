@@ -1,0 +1,14 @@
+#Systemd service file for Moonraker Telegram Bot
+[Unit]
+Description=Starts Moonraker Telegram Bot on startup
+After=network-online.target moonraker.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User={{ ansible_user_id }}
+ExecStart={{ ansible_env.HOME }}/moonraker-telegram-bot-env/bin/python {{ ansible_env.HOME }}/moonraker-telegram-bot/bot/main.py -c {{ printer_data }}/config/telegram.conf -l {{ printer_data }}/logs/telegram.log
+Restart=always
+RestartSec=5
