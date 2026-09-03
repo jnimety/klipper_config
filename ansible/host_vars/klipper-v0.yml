@@ -3,11 +3,3 @@ printer_name: klipper-v0
 # UVC device in lsusb) -- crowsnest still installs fine and picks up the
 # group_vars/all.yml ustreamer defaults; crowsnest.conf's device: just
 # won't have anything to stream from until one is plugged in.
-
-# nginx (webcam_https_proxy role) fronts the webcam here too, same as
-# klipper-vs-146 -- crowsnest itself stays loopback-only and the stream
-# is only reachable via HTTPS at /webcam/, reusing Moonraker's own certs
-# (ssl_port already auto-discovers them at ~/printer_data/certs/
-# moonraker.{cert,key} per the main repo's CLAUDE.md).
-webcam_no_proxy: false
-webcam_https_proxy: true

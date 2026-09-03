@@ -38,14 +38,16 @@ webcam_resolution: "640x480"
 webcam_max_fps: 15
 webcam_custom_flags: ""
 # crowsnest's own default first-stream port (both ustreamer and
-# camera-streamer backends) -- opened directly in the firewall role
-# when webcam_no_proxy is true, since nothing else fronts it then.
+# camera-streamer backends) -- crowsnest itself always stays
+# loopback-only on this port; the webcam_https_proxy role's nginx vhost
+# is what actually exposes it, at /webcam/ over HTTPS.
 webcam_port: 8080
 
-# No printer has nginx in front of it -- Mainsail/Fluidd run off-host and
-# reach the stream directly, so it needs to bind to all interfaces, not
-# just localhost (crowsnest's own default, meant for reverse-proxy setups).
-webcam_no_proxy: true
+# Both printers' moonraker.conf hardcode these same values for
+# port/ssl_port -- kept here too so the webcam_https_proxy/firewall
+# roles don't hardcode them independently.
+moonraker_port: 7125
+moonraker_ssl_port: 7130
 
 # Same LAN/link-local ranges as both printers' moonraker.conf
 # [authorization] trusted_clients -- the firewall role uses these to

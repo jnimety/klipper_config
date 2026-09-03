@@ -76,15 +76,13 @@
   notify: restart crowsnest
 
 # crowsnest defaults to binding the stream to 127.0.0.1, assuming a reverse
-# proxy sits in front of it. Mainsail/Fluidd run off-host and need to reach
-# the stream directly -- webcam_no_proxy is true by default (group_vars)
-# for that. vs-146 overrides it back to false in its own host_vars, since
-# its webcam_https_proxy role is the reverse proxy in that one case.
-- name: Set no_proxy in crowsnest.conf so the stream binds to 0.0.0.0
+# proxy sits in front of it -- true here, since every printer's webcam is
+# always fronted by nginx (see the webcam_https_proxy role).
+- name: Set no_proxy in crowsnest.conf so the stream stays loopback-only
   ansible.builtin.lineinfile:
     path: "{{ printer_data }}/config/crowsnest.conf"
     regexp: '^no_proxy:'
-    line: "no_proxy: {{ webcam_no_proxy | lower }}"
+    line: "no_proxy: false"
   notify: restart crowsnest
 
 - name: Set webcam custom_flags in crowsnest.conf

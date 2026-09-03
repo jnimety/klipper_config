@@ -1,9 +1,15 @@
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
+    # Also listen on Moonraker's old ssl_port so existing external
+    # Mainsail/Fluidd configs pointed at :7130 keep working unchanged --
+    # moonraker.conf no longer sets ssl_port itself (nginx owns 7130
+    # now), so there's no bind conflict. Same vhost, same locations.
+    listen {{ moonraker_ssl_port }} ssl;
+    listen [::]:{{ moonraker_ssl_port }} ssl;
 
-    access_log /var/log/nginx/webcam-access.log;
-    error_log /var/log/nginx/webcam-error.log;
+    access_log /var/log/nginx/printer-access.log;
+    error_log /var/log/nginx/printer-error.log;
 
     ssl_certificate     {{ printer_data }}/certs/moonraker.cert;
     ssl_certificate_key {{ printer_data }}/certs/moonraker.key;
@@ -17,5 +23,29 @@ server {
         access_log off;
         error_log off;
         proxy_pass http://127.0.0.1:{{ webcam_port }}/;
+    }
+
+    # Moonraker's API/websocket, reverse-proxied instead of using its own
+    # ssl_port directly -- see ansible/README.md's firewall/webcam_https_proxy
+    # notes. No local Mainsail/Fluidd UI is served here (that runs off-host);
+    # this only proxies the same endpoint paths their standard nginx configs
+    # do. Uncapped body size since gcode/firmware uploads go through here too.
+    client_max_body_size 0;
+
+    location /websocket {
+        proxy_pass http://127.0.0.1:{{ moonraker_port }}/websocket;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_read_timeout 3600s;
+    }
+
+    location ~ ^/(printer|api|access|machine|server)/ {
+        proxy_pass http://127.0.0.1:{{ moonraker_port }}$request_uri;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

@@ -8,8 +8,7 @@
     - klipper
     - moonraker
     - crowsnest
-    - role: webcam_https_proxy
-      when: webcam_https_proxy | default(false)
+    - webcam_https_proxy
     - moonraker_telegram_bot
     - klipper_tmc_autotune
     - shaketune

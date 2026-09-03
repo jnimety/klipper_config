@@ -9,19 +9,21 @@ printer's `moonraker.conf` (`moonraker-telegram-bot`,
 `klipper_tmc_autotune`, Klippain Shake&Tune).
 
 There's no web UI role: Mainsail/Fluidd run centrally off-host (on the
-user's k8s cluster) and talk to each printer's Moonraker directly over
-its `ssl_port` (7130 in both printers' `moonraker.conf`) — this
-playbook's job is just to make sure Moonraker is listening there, not to
-front it with anything local. nginx does still show up for one thing on
-both printers: putting the webcam stream back behind HTTPS at a
-`/webcam/` path (see `webcam_https_proxy` below) — Moonraker's own API
-doesn't need it, but crowsnest has no TLS of its own. This started as a
+user's k8s cluster), talking to each printer's Moonraker over what used
+to be its own native `ssl_port` (7130). Every printer instead
+reverse-proxies Moonraker's API/websocket through nginx alongside the
+webcam, unconditionally (see `webcam_https_proxy` below) — this isn't a
+per-printer option, every printer in the fleet works identically here.
+nginx listens on 7130 itself (as well as 443) and proxies to Moonraker's
+plain `port`, so existing Mainsail/Fluidd instance URLs on the k8s side
+keep working unchanged — `moonraker.conf` no longer sets `ssl_port` at
+all (it would otherwise conflict with nginx binding the same port).
+nginx also puts the webcam stream back behind HTTPS at a `/webcam/`
+path, since crowsnest has no TLS of its own. Both of these started as a
 vs-146-only setup (it already had an HTTPS `/webcam/` URL other things
 depended on, from before crowsnest replaced its old hand-rolled camera
-setup) and was later extended to klipper-v0 for consistency, and so
-that a firewalled printer only ever exposes the webcam stream over
-HTTPS rather than the bare HTTP port `webcam_port` opens directly (see
-the `firewall` role).
+setup) and were later made the fleet-wide default rather than a
+per-printer toggle.
 
 ## What this does NOT do
 
@@ -40,25 +42,18 @@ the `firewall` role).
   (see the repo `CLAUDE.md`'s "Secrets" section). Copy it forward
   manually, same as the main README's deploy runbook already describes.
   The `klipper_config_repo` role just warns if it's missing.
-- **Set up TLS certs for Moonraker's `ssl_port`, or the external
-  `*.nimety.com` proxy in front of the k8s-hosted Mainsail/Fluidd.** Both
-  printers' `moonraker.conf` already configure `ssl_port: 7130`, and
-  klipper-v0's auto-discovers certs at
-  `~/printer_data/certs/moonraker.{cert,key}` per the main repo's
-  `CLAUDE.md` — this playbook assumes those certs already exist on each
-  host and doesn't generate them.
-- **Expose the webcam stream directly, on either current printer.**
-  `group_vars/all.yml`'s default (`webcam_no_proxy: true`) would have
-  crowsnest bind its stream port (`webcam_port`, 8080) directly on all
-  interfaces, reachable straight over the LAN at
-  `http://<hostname>.local:8080/stream` rather than through a `/webcam/`
-  alias — but both `klipper-vs-146` and `klipper-v0` override that in
-  their own `host_vars` (`webcam_no_proxy: false` +
-  `webcam_https_proxy: true`), so crowsnest stays loopback-only and the
-  stream is only reachable via nginx's HTTPS `/webcam/` path instead —
-  see `webcam_https_proxy` in Layout below. A future printer that leaves
-  the default in place would need `webcam_port` opened directly in the
-  `firewall` role instead of `443`.
+- **Set up TLS certs, for nginx or the external `*.nimety.com` proxy in
+  front of the k8s-hosted Mainsail/Fluidd.** Both printers'
+  `~/printer_data/certs/moonraker.{cert,key}` already exist (per the
+  main repo's `CLAUDE.md`) — this playbook assumes they're already
+  there and doesn't generate them;
+  `webcam_https_proxy`'s nginx vhost just reuses the same files directly.
+- **Expose the webcam stream, or Moonraker, directly.** crowsnest always
+  binds its stream port (`webcam_port`, 8080) to loopback only, and
+  `moonraker.conf` never sets `ssl_port` — both are only ever reachable
+  through nginx's HTTPS `/webcam/` path and proxied API/websocket (see
+  `webcam_https_proxy` in Layout below). There's no per-printer toggle
+  for this; it's how every printer in the fleet is provisioned.
 - **Flash a fresh SD card or set the hostname/SSH.** Assumes Raspberry Pi
   OS is already imaged and reachable at `<hostname>.local` over SSH as
   the `jnimety` user with passwordless sudo (the RPi OS default).
@@ -91,32 +86,48 @@ One role per concern, run in dependency order from `site.yml`:
    `host_vars` — group default is a generic USB/UVC webcam via
    `ustreamer`; see `host_vars/klipper-vs-146.yml` for the
    `camera-streamer` + libcamera variant its CSI Pi Camera Module needs.
-   Proxy behavior (`webcam_no_proxy`) defaults to streamed-directly
-   (no proxy), but both current printers override it to `false` — see
-   `webcam_https_proxy` below.
-7. `webcam_https_proxy` — runs on both current printers, wherever
-   `host_vars` sets `webcam_https_proxy: true`. A minimal nginx vhost
-   whose only job is putting the webcam stream (crowsnest, kept
-   loopback-only by `webcam_no_proxy: false`) behind HTTPS at a
-   `/webcam/` path, reusing Moonraker's own certs — no static file
-   serving, no Moonraker API proxying (that's natively handled by
-   Moonraker's own `ssl_port` already). Originated on vs-146 (matching
-   the HTTPS `/webcam/` URL it served before crowsnest replaced its old
-   hand-rolled camera-streamer setup) and later extended to klipper-v0
-   for the same reason, plus keeping the webcam off the open LAN once
-   the `firewall` role is in place.
+   The stream always binds loopback-only (`no_proxy: false` in
+   `crowsnest.conf`, hardcoded, not a variable) — `webcam_https_proxy`
+   below is what actually exposes it.
+7. `webcam_https_proxy` — runs on every printer unconditionally, not a
+   per-host opt-in. One nginx vhost, reusing Moonraker's own certs,
+   listening on both `443` and `moonraker_ssl_port` (7130, so existing
+   external Mainsail/Fluidd configs pointed at the old `ssl_port` keep
+   working unchanged), that puts both of the following behind HTTPS:
+   - the webcam stream (crowsnest, always loopback-only) at `/webcam/`;
+   - Moonraker's API/websocket, at the same paths (`/websocket`,
+     `/printer/`, `/api/`, `/access/`, `/machine/`, `/server/`) its
+     standard nginx/Mainsail/Fluidd configs already expect, proxied to
+     `moonraker_port` (7125) in place of Moonraker's own `ssl_port` —
+     `client_max_body_size 0` is set since gcode/firmware uploads go
+     through here too.
+
+   No static file serving — no local Mainsail/Fluidd UI is served here,
+   that runs off-host. Before installing the vhost, this role also
+   strips `ssl_port` from the _live_ `moonraker.conf` (not just the
+   repo copy — `klipper_config_repo` clones with `update: false`, so a
+   repo-only edit wouldn't reach an already-provisioned host) and
+   restarts Moonraker, since nginx binding `7130` itself would otherwise
+   conflict with Moonraker also trying to bind it. Originated on vs-146
+   as webcam-only (matching the HTTPS `/webcam/` URL it served before
+   crowsnest replaced its old hand-rolled camera-streamer setup), later
+   extended to klipper-v0 for the same reason and then to proxying
+   Moonraker too, and eventually made unconditional across the fleet
+   rather than a pair of per-host toggles — every printer should look
+   identical here.
+
 8. `moonraker_telegram_bot`, `klipper_tmc_autotune`, `shaketune` — the
    three plugins already referenced in each printer's `moonraker.conf`.
 9. `firewall` — runs last. Installs `nftables` and renders
    `/etc/nftables.conf` with a default-drop `input` chain (logged, rate
-   limited) that only opens SSH, Moonraker's `port`/`ssl_port`
-   (7125/7130, both printers), mDNS, DHCPv4 client replies, and this
-   printer's webcam access — `webcam_port` (8080) directly when
-   `webcam_no_proxy: true`, or 443 when `webcam_https_proxy: true`
-   fronts it instead (vs-146). SSH/Moonraker/webcam access is further
-   scoped to `firewall_trusted_v4`/`firewall_trusted_v6`, the same
-   LAN/link-local ranges as both printers' `moonraker.conf`
-   `trusted_clients` — keep the two lists in sync if either changes.
+   limited) that only opens SSH, mDNS, DHCPv4 client replies, `443`, and
+   `moonraker_ssl_port` (7130, owned by nginx) — Moonraker's plain
+   `port` and `webcam_port` (8080) stay bound but unreachable from the
+   LAN, since nginx reaches both over loopback. SSH/Moonraker/webcam
+   access is further scoped to `firewall_trusted_v4`/
+   `firewall_trusted_v6`, the same LAN/link-local ranges as both
+   printers' `moonraker.conf` `trusted_clients` — keep the two lists in
+   sync if either changes.
    `forward` is default-drop (these hosts don't route), `output` is
    left open. Because a bad rule here has no console to recover from on
    a headless Pi, the new ruleset is validated with `nft -c` before

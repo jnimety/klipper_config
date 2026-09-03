@@ -21,9 +21,3 @@ webcam_max_fps: 30
 # here overrides the earlier 1080 one (confirmed via a manual foreground
 # run that omitted it entirely, which also worked -- last value wins).
 webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-stream.height=1232 --camera-snapshot.height=1232 --camera-options=brightness=0.1 --camera-hflip --camera-vflip"
-# nginx (webcam_https_proxy role) is the external-facing side of the
-# webcam again, at the same /webcam/ HTTPS path this host used to serve
-# before crowsnest replaced its camera-streamer setup -- so crowsnest
-# itself goes back to localhost-only, matching the original architecture.
-webcam_no_proxy: false
-webcam_https_proxy: true

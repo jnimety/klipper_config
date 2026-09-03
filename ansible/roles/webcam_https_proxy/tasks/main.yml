@@ -1,11 +1,27 @@
-# Only enabled where host_vars sets webcam_https_proxy: true (see
-# host_vars/klipper-vs-146.yml and host_vars/klipper-v0.yml) --
-# Moonraker's API/websocket already
-# terminates its own HTTPS natively on ssl_port, so this vhost's only job
-# is putting the webcam stream (crowsnest has no TLS of its own) back
-# behind HTTPS at the same /webcam/ path it was on before, reusing
-# Moonraker's own certs. No static file serving, no API proxying, no
-# webcam2-4 -- just the one thing nginx is actually needed for here.
+# Runs on every printer unconditionally, for identical behavior across
+# the fleet. One TLS vhost, reusing Moonraker's own certs, that puts
+# both the webcam stream (crowsnest has no TLS of its own) and
+# Moonraker's API/websocket (in place of its own ssl_port) behind
+# HTTPS -- see webcam.conf.j2. No static file serving -- no local
+# Mainsail/Fluidd UI is served here, that runs off-host.
+# klipper_config_repo clones with update: false, so editing moonraker.conf
+# in the repo alone won't reach an already-provisioned host. Enforce the
+# live file directly instead, and free the port *before* nginx's vhost
+# below tries to bind it -- otherwise nginx fails to reload with an
+# "address already in use" error.
+- name: Remove Moonraker's own ssl_port now that nginx fronts it instead
+  ansible.builtin.lineinfile:
+    path: "{{ printer_data }}/config/moonraker.conf"
+    regexp: "^ssl_port:"
+    state: absent
+  register: moonraker_ssl_port_removed
+- name: Restart Moonraker to release ssl_port
+  ansible.builtin.systemd:
+    name: moonraker
+    state: restarted
+  become: true
+  when: moonraker_ssl_port_removed.changed
+
 - name: Install nginx
   ansible.builtin.apt:
     name: nginx
@@ -17,14 +33,14 @@
     state: absent
   become: true
   notify: reload nginx
-- name: Install webcam-only TLS proxy vhost
+- name: Install printer TLS proxy vhost
   ansible.builtin.template:
     src: webcam.conf.j2
     dest: /etc/nginx/sites-available/webcam
     mode: "0644"
   become: true
   notify: reload nginx
-- name: Enable webcam vhost
+- name: Enable printer vhost
   ansible.builtin.file:
     src: /etc/nginx/sites-available/webcam
     dest: /etc/nginx/sites-enabled/webcam
