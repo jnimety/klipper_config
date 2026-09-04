@@ -26,11 +26,20 @@ table inet filter {
 		ct state invalid drop
 		ct state established,related accept
 
-		# IPv6 neighbor discovery/router advertisement -- IPv6 breaks
-		# without these regardless of trust source. Echo-request kept
-		# on both families for LAN ping/troubleshooting.
-		icmp type { echo-request, destination-unreachable, time-exceeded, parameter-problem } accept
-		ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, nd-redirect, echo-request } accept
+		# IPv6 neighbor discovery/router advertisement, plus ICMP/ICMPv6
+		# error messages used for path MTU discovery -- both must work
+		# regardless of trust source: ND/RA are a link-local protocol
+		# requirement, and PMTUD/error replies can legitimately arrive
+		# from any router along the path to an outbound connection this
+		# host itself initiated (e.g. apt/git), not just a trusted range.
+		icmp type { destination-unreachable, time-exceeded, parameter-problem } accept
+		ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, nd-redirect } accept
+
+		# Echo-request (ping) isn't needed for either of the above --
+		# it's just for LAN ping/troubleshooting, so unlike them it's
+		# scoped to the trusted ranges like every other opened port.
+		ip saddr @trusted_v4 icmp type echo-request accept
+		ip6 saddr @trusted_v6 ip6 nexthdr icmpv6 icmpv6 type echo-request accept
 
 		# DHCPv4 client lease renewal replies
 		udp dport 68 accept
