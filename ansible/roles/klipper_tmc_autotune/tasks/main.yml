@@ -1,10 +1,11 @@
 ---
 - name: Clone klipper_tmc_autotune
-  ansible.builtin.git:
-    repo: "{{ klipper_tmc_autotune_repo_url }}"
-    dest: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
-    version: main
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ klipper_tmc_autotune_repo_url }}"
+    git_clone_dest: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
+    git_clone_version: main
 
 # Not become:true -- the script rejects running as EUID 0 and calls sudo
 # itself for the one step that needs it (restarting klipper). It doesn't

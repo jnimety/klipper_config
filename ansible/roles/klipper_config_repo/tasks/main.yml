@@ -8,11 +8,12 @@
   register: config_path
 
 - name: Clone klipper_config repo
-  ansible.builtin.git:
-    repo: "{{ klipper_config_repo_url }}"
-    dest: "{{ klipper_config_home }}"
-    version: main
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ klipper_config_repo_url }}"
+    git_clone_dest: "{{ klipper_config_home }}"
+    git_clone_version: main
 
 - name: Back up existing non-symlink printer_data/config
   ansible.builtin.command: >

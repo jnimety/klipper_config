@@ -22,16 +22,16 @@
     state: present
   become: true
 
-# update: false -- upgrades are the repo README's own runbook
-# ("Upgrading Klipper firmware"), which also has to juggle per-target
-# .config files. This role's job is "make sure it's present", not
-# "keep it current".
+# Firmware upgrades are the repo README's own runbook ("Upgrading Klipper
+# firmware"), which also has to juggle per-target .config files -- this
+# role's job is just "make sure it's present".
 - name: Clone Klipper
-  ansible.builtin.git:
-    repo: "{{ klipper_repo_url }}"
-    dest: "{{ klipper_home }}"
-    version: master
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ klipper_repo_url }}"
+    git_clone_dest: "{{ klipper_home }}"
+    git_clone_version: master
 
 - name: Create klippy-env and install klippy Python dependencies
   ansible.builtin.pip:

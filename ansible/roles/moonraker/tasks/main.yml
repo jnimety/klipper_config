@@ -1,12 +1,11 @@
 ---
-# update: false -- same reasoning as the klipper role: this ensures
-# Moonraker is present, ongoing upgrades stay a deliberate, separate step.
 - name: Clone Moonraker
-  ansible.builtin.git:
-    repo: "{{ moonraker_repo_url }}"
-    dest: "{{ moonraker_home }}"
-    version: master
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ moonraker_repo_url }}"
+    git_clone_dest: "{{ moonraker_home }}"
+    git_clone_version: master
 
 # Moonraker's own install script is non-interactive and idempotent; it
 # shells out to sudo itself for the apt/systemd/polkit steps, so this

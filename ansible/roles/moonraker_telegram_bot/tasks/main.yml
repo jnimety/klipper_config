@@ -35,11 +35,12 @@
   changed_when: false
 
 - name: Clone moonraker-telegram-bot
-  ansible.builtin.git:
-    repo: "{{ moonraker_telegram_bot_repo_url }}"
-    dest: "{{ ansible_env.HOME }}/moonraker-telegram-bot"
-    version: master
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ moonraker_telegram_bot_repo_url }}"
+    git_clone_dest: "{{ ansible_env.HOME }}/moonraker-telegram-bot"
+    git_clone_version: master
 
 - name: Create scratch TMPDIR used by pip during bot install
   ansible.builtin.file:

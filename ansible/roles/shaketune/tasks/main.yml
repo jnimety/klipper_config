@@ -1,10 +1,11 @@
 ---
 - name: Clone Klippain Shake&Tune
-  ansible.builtin.git:
-    repo: "{{ klippain_shaketune_repo_url }}"
-    dest: "{{ ansible_env.HOME }}/klippain_shaketune"
-    version: main
-    update: false
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ klippain_shaketune_repo_url }}"
+    git_clone_dest: "{{ ansible_env.HOME }}/klippain_shaketune"
+    git_clone_version: main
 
 # Not become:true -- same as klipper_tmc_autotune, script rejects EUID 0
 # and sudos internally for restarting klipper/moonraker. Its add_updater

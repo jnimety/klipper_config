@@ -1,0 +1,13 @@
+---
+# Shared by every role that just needs "make sure this git repo is
+# present" -- upgrades are each project's own deliberate, separate
+# runbook step (see e.g. the repo README's "Upgrading Klipper firmware"),
+# not something a routine playbook run should do implicitly. Include via
+# `ansible.builtin.include_role: name: git_clone` with git_clone_repo,
+# git_clone_dest, and git_clone_version set in `vars:`.
+- name: "Clone {{ git_clone_dest | basename }}"
+  ansible.builtin.git:
+    repo: "{{ git_clone_repo }}"
+    dest: "{{ git_clone_dest }}"
+    version: "{{ git_clone_version }}"
+    update: false
