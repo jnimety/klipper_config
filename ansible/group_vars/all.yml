@@ -61,6 +61,7 @@ firewall_trusted_v4:
   - 192.168.0.0/16
 firewall_trusted_v6:
   - fe80::/10
+  - ::1/128
 
 # Set true (globally or per-host) to let the base role reboot automatically
 # when enabling SPI requires it. Left off by default since that's a
