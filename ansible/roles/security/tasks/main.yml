@@ -40,3 +40,38 @@
   become: true
   changed_when: false
   when: sshd_hardening_conf.changed
+
+# sshd -t only checks syntax, not whether the connecting client's SSH
+# library actually supports one of the whitelisted algorithms above. This
+# schedules an unconditional revert-and-restart a few minutes out; it's
+# cancelled below once this same ansible run proves the restarted sshd
+# still accepts the connection it's running over. Mirrors the nftables
+# safety net in roles/firewall.
+- name: Schedule a safety-net sshd hardening rollback
+  ansible.builtin.command: >-
+    systemd-run --unit=sshd-hardening-safety-net --on-active=3min
+    /bin/sh -c "rm -f /etc/ssh/sshd_config.d/ssh-audit_hardening.conf && systemctl restart ssh"
+  become: true
+  changed_when: true
+  when: sshd_hardening_conf.changed
+
+# Handlers are normally deferred to the end of the play, which would run
+# the "restart sshd" handler *after* the firewall role's own safety net
+# has already been set up, confirmed, and cancelled -- leaving the sshd
+# restart with no rollback protection of its own. Flush now so the
+# restart (and the connectivity check below) happen immediately, while
+# the safety net scheduled above is still armed.
+- name: Flush handlers to restart sshd now
+  ansible.builtin.meta: flush_handlers
+
+- name: Confirm SSH access survived the hardening restart
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+  when: sshd_hardening_conf.changed
+
+- name: Cancel the safety-net sshd hardening rollback now that access is confirmed
+  ansible.builtin.command: systemctl stop sshd-hardening-safety-net.timer
+  become: true
+  changed_when: true
+  failed_when: false
+  when: sshd_hardening_conf.changed
