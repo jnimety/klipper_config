@@ -63,6 +63,7 @@
     dest: /etc/systemd/system/moonraker-telegram-bot.service
     mode: "0644"
   become: true
+  notify: restart moonraker-telegram-bot
 
 # Starts even without secrets.conf in place -- Restart=always just retries,
 # matching upstream's own behavior. See klipper_config_repo role's warning

@@ -1,0 +1,5 @@
+- name: restart moonraker-telegram-bot
+  ansible.builtin.systemd:
+    name: moonraker-telegram-bot.service
+    state: restarted
+  become: true

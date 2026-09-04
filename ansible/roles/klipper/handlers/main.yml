@@ -1,0 +1,44 @@
+# Restarting klipper.service (or klipper-mcu.service, its host-MCU
+# companion) aborts whatever the printer is doing. Both restarts share
+# this idle check via `listen` so a config change never kills an active
+# print out from under the operator.
+- name: query moonraker for current print state
+  listen:
+    - restart klipper
+    - restart klipper-mcu
+  ansible.builtin.uri:
+    url: "http://localhost:{{ moonraker_port }}/printer/objects/query?print_stats"
+    return_content: true
+  register: klipper_print_stats
+  ignore_errors: true
+
+# Moonraker being unreachable (e.g. first-ever bootstrap, before klipper
+# has ever started) means there's nothing printing yet -- only block the
+# restart when we got a clean answer that actually says a print is
+# active, not on every network hiccup.
+- name: refuse to restart while a print is active
+  listen:
+    - restart klipper
+    - restart klipper-mcu
+  ansible.builtin.fail:
+    msg: >-
+      Refusing to restart Klipper: print_stats.state is
+      "{{ klipper_print_stats.json.result.status.print_stats.state }}".
+      Finish or cancel the print, then rerun the playbook.
+  when:
+    - klipper_print_stats is succeeded
+    - klipper_print_stats.json.result.status.print_stats.state in ['printing', 'paused']
+
+- name: restart klipper
+  listen: restart klipper
+  ansible.builtin.systemd:
+    name: klipper.service
+    state: restarted
+  become: true
+
+- name: restart klipper-mcu
+  listen: restart klipper-mcu
+  ansible.builtin.systemd:
+    name: klipper-mcu.service
+    state: restarted
+  become: true
