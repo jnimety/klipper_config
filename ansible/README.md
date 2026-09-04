@@ -175,10 +175,20 @@ ansible-playbook site.yml --check --diff          # dry run
   device gets plugged in. klipper-v0 has no camera attached yet (checked
   via `lsusb`/`libcamera-hello` over SSH), so this only matters once one
   is actually plugged in.
-- `moonraker.conf` will likely show an uncommitted diff after the first
-  run (crowsnest's installer adds an `[update_manager crowsnest]` block,
-  the same way the already-committed `klipper_tmc_autotune`/
-  `Klippain-ShakeTune` blocks got there originally). Review and commit it
-  yourself, same as any other host-generated change to this repo.
+- `moonraker.conf` and `crowsnest.conf` are both committed per-printer
+  under `printers/<hostname>` already, pre-populated to match what
+  crowsnest's installer + this role's `lineinfile` tasks converge on
+  (the `[update_manager crowsnest]` block, and `crowsnest.conf`'s
+  `mode`/`device`/`resolution`/`max_fps`/`no_proxy`/`custom_flags`) —
+  the same tracked-and-occasionally-diffed pattern as the
+  `klipper_tmc_autotune`/`Klippain-ShakeTune` `moonraker.conf` blocks.
+  A fresh bootstrap should converge to a clean `git status` with no
+  further commit needed; if you change `webcam_*` in `host_vars` and
+  rerun, expect a real diff to review and commit. Note that crowsnest's
+  installer also backs up any pre-existing `crowsnest.conf` to a
+  timestamped `crowsnest.conf.<date>-<time>` before writing its own —
+  harmless (`.gitignore`'d, and immediately made correct again by this
+  role's `lineinfile` tasks) but safe to delete from the host once
+  you've confirmed the real `crowsnest.conf` looks right.
 - Build/flash the actual MCU firmware per the main README before
   expecting `klippy` to report `ready`.

@@ -2,4 +2,5 @@
 .fluidd_console_history.json
 printer-*.cfg
 .moonraker.conf.bkp
+crowsnest.conf.20*
 secrets.conf
