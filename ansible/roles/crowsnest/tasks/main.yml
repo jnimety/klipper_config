@@ -85,10 +85,14 @@
     line: "no_proxy: false"
   notify: restart crowsnest
 
+# Always runs (rather than only `when webcam_custom_flags | length > 0`)
+# so that resetting webcam_custom_flags back to the empty-string default
+# actually clears a previously-set line instead of leaving it stale --
+# lineinfile only reports changed (and only then notifies a restart) if
+# the line's content actually differs, so this stays a no-op otherwise.
 - name: Set webcam custom_flags in crowsnest.conf
   ansible.builtin.lineinfile:
     path: "{{ printer_data }}/config/crowsnest.conf"
     regexp: '^#?custom_flags:'
-    line: "custom_flags: {{ webcam_custom_flags }}"
-  when: webcam_custom_flags | length > 0
+    line: "{{ 'custom_flags: ' + webcam_custom_flags if webcam_custom_flags | length > 0 else '#custom_flags:' }}"
   notify: restart crowsnest
