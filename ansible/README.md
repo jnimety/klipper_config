@@ -16,8 +16,10 @@ webcam, unconditionally (see `webcam_https_proxy` below) — this isn't a
 per-printer option, every printer in the fleet works identically here.
 nginx listens on 7130 itself (as well as 443) and proxies to Moonraker's
 plain `port`, so existing Mainsail/Fluidd instance URLs on the k8s side
-keep working unchanged — `moonraker.conf` no longer sets `ssl_port` at
-all (it would otherwise conflict with nginx binding the same port).
+keep working unchanged — each host's Moonraker certs have been renamed
+off Moonraker's auto-discovered path (`moonraker.{cert,key}` →
+`nginx.{cert,key}`), so Moonraker never binds its own HTTPS server and
+there's nothing for nginx to conflict with on that port.
 nginx also puts the webcam stream back behind HTTPS at a `/webcam/`
 path, since crowsnest has no TLS of its own. Both of these started as a
 vs-146-only setup (it already had an HTTPS `/webcam/` URL other things
@@ -44,16 +46,21 @@ per-printer toggle.
   The `klipper_config_repo` role just warns if it's missing.
 - **Set up TLS certs, for nginx or the external `*.nimety.com` proxy in
   front of the k8s-hosted Mainsail/Fluidd.** Both printers'
-  `~/printer_data/certs/moonraker.{cert,key}` already exist (per the
-  main repo's `CLAUDE.md`) — this playbook assumes they're already
-  there and doesn't generate them;
-  `webcam_https_proxy`'s nginx vhost just reuses the same files directly.
+  `~/printer_data/certs/nginx.{cert,key}` already exist (per the main
+  repo's `CLAUDE.md`) — this playbook assumes they're already there and
+  doesn't generate or rotate them; `webcam_https_proxy`'s nginx vhost
+  just reuses the same files directly. They were originally Moonraker's
+  own self-signed `moonraker.{cert,key}`, manually renamed once on each
+  host (also outside this playbook) so Moonraker stops auto-discovering
+  them and never enables its own HTTPS server.
 - **Expose the webcam stream, or Moonraker, directly.** crowsnest always
   binds its stream port (`webcam_port`, 8080) to loopback only, and
-  `moonraker.conf` never sets `ssl_port` — both are only ever reachable
-  through nginx's HTTPS `/webcam/` path and proxied API/websocket (see
-  `webcam_https_proxy` in Layout below). There's no per-printer toggle
-  for this; it's how every printer in the fleet is provisioned.
+  Moonraker's certs having been renamed off its auto-discovered path
+  means it never starts an HTTPS server of its own — both are only ever
+  reachable through nginx's HTTPS `/webcam/` path and proxied
+  API/websocket (see `webcam_https_proxy` in Layout below). There's no
+  per-printer toggle for this; it's how every printer in the fleet is
+  provisioned.
 - **Flash a fresh SD card or set the hostname/SSH.** Assumes Raspberry Pi
   OS is already imaged and reachable at `<hostname>.local` over SSH as
   the `jnimety` user with passwordless sudo (the RPi OS default).
@@ -103,12 +110,12 @@ One role per concern, run in dependency order from `site.yml`:
      through here too.
 
    No static file serving — no local Mainsail/Fluidd UI is served here,
-   that runs off-host. Before installing the vhost, this role also
-   strips `ssl_port` from the _live_ `moonraker.conf` (not just the
-   repo copy — `klipper_config_repo` clones with `update: false`, so a
-   repo-only edit wouldn't reach an already-provisioned host) and
-   restarts Moonraker, since nginx binding `7130` itself would otherwise
-   conflict with Moonraker also trying to bind it. Originated on vs-146
+   that runs off-host. The vhost's `ssl_certificate`/`ssl_certificate_key`
+   point at `nginx.{cert,key}` — Moonraker's own certs, renamed once on
+   each host (manually, outside this playbook) from their
+   auto-discovered `moonraker.{cert,key}` names specifically so Moonraker
+   stops enabling its own HTTPS server; nginx binding `7130` would
+   otherwise race Moonraker for the same port at boot. Originated on vs-146
    as webcam-only (matching the HTTPS `/webcam/` URL it served before
    crowsnest replaced its old hand-rolled camera-streamer setup), later
    extended to klipper-v0 for the same reason and then to proxying

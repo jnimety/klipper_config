@@ -3,16 +3,20 @@ server {
     listen [::]:443 ssl;
     # Also listen on Moonraker's old ssl_port so existing external
     # Mainsail/Fluidd configs pointed at :7130 keep working unchanged --
-    # moonraker.conf no longer sets ssl_port itself (nginx owns 7130
-    # now), so there's no bind conflict. Same vhost, same locations.
+    # Moonraker's certs were renamed off its auto-discovered path (see
+    # webcam_https_proxy/tasks/main.yml), so it never binds this port
+    # itself and there's no bind conflict. Same vhost, same locations.
     listen {{ moonraker_ssl_port }} ssl;
     listen [::]:{{ moonraker_ssl_port }} ssl;
 
     access_log /var/log/nginx/printer-access.log;
     error_log /var/log/nginx/printer-error.log;
 
-    ssl_certificate     {{ printer_data }}/certs/moonraker.cert;
-    ssl_certificate_key {{ printer_data }}/certs/moonraker.key;
+    # Moonraker's original self-signed cert/key, renamed from
+    # moonraker.{cert,key} so Moonraker itself stops auto-discovering
+    # them -- see webcam_https_proxy/tasks/main.yml.
+    ssl_certificate     {{ printer_data }}/certs/nginx.cert;
+    ssl_certificate_key {{ printer_data }}/certs/nginx.key;
 
     server_name _;
 
