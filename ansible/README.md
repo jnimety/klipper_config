@@ -69,8 +69,10 @@ per-printer toggle.
 
 One role per concern, run in dependency order from `site.yml`:
 
-1. `base` — apt prerequisites, hardware-access groups, SPI enable, the
-   `printer_data` directory skeleton.
+1. `base` — apt prerequisites, hardware-access groups, SPI enable,
+   `rpi-swap` (Trixie's swap manager, installed in place of the older
+   `dphys-swapfile` it conflicts with/replaces), the `printer_data`
+   directory skeleton.
 2. `security` — OS hardening shared with this user's other Ansible-managed
    hosts (see `~/workspace/home-network/k3s.nimety.com/ansible`'s own
    `security` role): a `/etc/sudoers.d/` drop-in for passwordless sudo,

@@ -51,6 +51,17 @@
   when: spi_state.stdout | trim == "1"
   register: spi_enabled
 
+# Trixie's current swap manager. Conflicts/Replaces/Provides
+# dphys-swapfile, so this cleanly removes the older package as part
+# of the same apt transaction. Stock "auto" mechanism (zram+file) is
+# used as-is -- no custom swap.conf.d sizing for now.
+- name: Install rpi-swap (replaces dphys-swapfile)
+  ansible.builtin.apt:
+    name: rpi-swap
+    state: present
+  become: true
+  register: rpi_swap_installed
+
 - name: Create printer_data directory skeleton
   ansible.builtin.file:
     path: "{{ printer_data }}/{{ item }}"
@@ -65,9 +76,11 @@
     - systemd
     - backup
 
-- name: Reboot if an interface/group change requires it
+- name: Reboot if an interface/group/swap change requires it
   ansible.builtin.reboot:
   become: true
   when: >
     reboot_if_required and
-    ((spi_enabled is defined and spi_enabled.changed) or user_groups_changed.changed)
+    ((spi_enabled is defined and spi_enabled.changed) or
+     user_groups_changed.changed or
+     rpi_swap_installed.changed)
