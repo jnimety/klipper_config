@@ -63,6 +63,11 @@ firewall_trusted_v6:
   - fe80::/10
   - ::1/128
 
+# rpi-swap's forced traditional-swapfile size (MiB) -- see base role.
+# Both printers' hosts have plenty of SD card headroom (13G+ free), so
+# size it generously rather than tuning per-host.
+swap_size_mib: 4096
+
 # Set true (globally or per-host) to let the base role reboot automatically
 # when enabling SPI requires it. Left off by default since that's a
 # disruptive action this playbook shouldn't take without being asked.

@@ -62,6 +62,33 @@
   become: true
   register: rpi_swap_installed
 
+# The stock "auto" mechanism resolves to zram+file, whose swap capacity
+# is backed by real RAM (just compressed) -- it can't give headroom
+# beyond physical RAM. Confirmed insufficient on klipper-vs-146: the
+# OOM killer took out cc1 mid-build (nvim-treesitter compiling a parser)
+# with both RAM and zram swap pinned near full. A real disk-backed
+# swapfile is what "increase the swapfile to 4G" always meant to give;
+# forcing Mechanism=swapfile here is what actually delivers that.
+- name: Create rpi-swap drop-in directory
+  ansible.builtin.file:
+    path: /etc/rpi/swap.conf.d
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Force rpi-swap to use a traditional disk-backed 4G swapfile
+  ansible.builtin.copy:
+    dest: /etc/rpi/swap.conf.d/80-use-swapfile.conf
+    content: |
+      [Main]
+      Mechanism=swapfile
+
+      [File]
+      FixedSizeMiB={{ swap_size_mib }}
+    mode: "0644"
+  become: true
+  register: rpi_swap_configured
+
 - name: Create printer_data directory skeleton
   ansible.builtin.file:
     path: "{{ printer_data }}/{{ item }}"
@@ -83,4 +110,5 @@
     reboot_if_required and
     ((spi_enabled is defined and spi_enabled.changed) or
      user_groups_changed.changed or
-     rpi_swap_installed.changed)
+     rpi_swap_installed.changed or
+     rpi_swap_configured.changed)
