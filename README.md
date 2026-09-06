@@ -45,6 +45,8 @@ Each host gets a single clone of this repo, with `~/printer_data/config` symlink
 
 Do one printer at a time — whichever isn't mid-print — with a soak period before touching the second.
 
+For an already-bootstrapped host (symlink already in place), re-running `ansible/site.yml` covers routine config-only pushes on its own: its `klipper_config_repo` role pulls this repo and restarts klipper + moonraker automatically whenever the pull actually changed something, refusing the restart if a print is active (see `ansible/README.md`). This runbook is still the manual fallback — for the initial symlink swap, or when applying a pulled change by hand without ansible.
+
 ## Upgrading Klipper firmware (klipper-vs-146)
 
 klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Mini E3 v2.0 / STM32F103) and a host-side Linux process (`[mcu rpi]`, backing the `rpi:gpio12`/`13`/`18` pins and an SPI `cs_pin` in `printer.cfg`). Building one overwrites `~/klipper/.config`, so after rebuilding either target, restore the _other_ target's config too — otherwise the next plain `make` silently targets the wrong architecture.

@@ -1,0 +1,31 @@
+# Mirrors klipper/handlers/main.yml's idle check: restarting Moonraker
+# mid-print doesn't halt Klippy or the toolhead, but it does drop the
+# API/websocket out from under the operator (UI goes unresponsive,
+# tgnotify/LED status calls that go through Moonraker's own endpoints
+# stall) -- still not something a routine config-repo update should do
+# to an unattended print.
+- name: query moonraker for current print state (moonraker restart)
+  listen: restart moonraker
+  ansible.builtin.uri:
+    url: "http://localhost:{{ moonraker_port }}/printer/objects/query?print_stats"
+    return_content: true
+  register: moonraker_print_stats
+  ignore_errors: true
+
+- name: refuse to restart moonraker while a print is active
+  listen: restart moonraker
+  ansible.builtin.fail:
+    msg: >-
+      Refusing to restart Moonraker: print_stats.state is
+      "{{ moonraker_print_stats.json.result.status.print_stats.state }}".
+      Finish or cancel the print, then rerun the playbook.
+  when:
+    - moonraker_print_stats is succeeded
+    - moonraker_print_stats.json.result.status.print_stats.state in ['printing', 'paused']
+
+- name: restart moonraker
+  listen: restart moonraker
+  ansible.builtin.systemd:
+    name: moonraker.service
+    state: restarted
+  become: true

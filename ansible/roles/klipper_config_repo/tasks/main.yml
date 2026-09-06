@@ -7,13 +7,35 @@
     path: "{{ printer_data }}/config"
   register: config_path
 
-- name: Clone klipper_config repo
-  ansible.builtin.include_role:
-    name: git_clone
-  vars:
-    git_clone_repo: "{{ klipper_config_repo_url }}"
-    git_clone_dest: "{{ klipper_config_home }}"
-    git_clone_version: main
+# Deliberately not the shared git_clone role (which every other clone in
+# this playbook uses with update: false -- see ansible/README.md "What
+# this does NOT do"): this checkout IS the live config, not a software
+# release to pin, so pulling latest on every run is the actual "deploy"
+# step from the main README's "Deploying to a printer" runbook, and the
+# handlers below restart klipper/moonraker to match (print-safety
+# checked, same as a manual redeploy would require anyway).
+- name: Clone or update klipper_config repo
+  ansible.builtin.git:
+    repo: "{{ klipper_config_repo_url }}"
+    dest: "{{ klipper_config_home }}"
+    version: main
+    update: true
+  register: klipper_config_git
+
+# The git module only sets `before` on an existing checkout (never on a
+# first-time clone), so this naturally skips notifying on first bootstrap
+# -- when klipper.service/moonraker.service may not even be installed
+# yet by the roles that run after this one.
+- name: Restart klipper/moonraker for pulled config changes
+  ansible.builtin.debug:
+    msg: "klipper_config updated {{ klipper_config_git.before }} -> {{ klipper_config_git.after }}"
+  changed_when: true
+  when:
+    - klipper_config_git.before is defined
+    - klipper_config_git.before != klipper_config_git.after
+  notify:
+    - restart klipper
+    - restart moonraker
 
 - name: Back up existing non-symlink printer_data/config
   ansible.builtin.command: >

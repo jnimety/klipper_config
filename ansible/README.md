@@ -35,11 +35,15 @@ per-printer toggle.
   Klipper firmware" runbooks by hand. This playbook installs and enables
   `klipper.service`/`klipper-mcu.service`, but `klipper-mcu.service`
   simply won't start until `/usr/local/bin/klipper_mcu` exists.
-- **Keep anything updated.** Every `git clone` here uses `update: false`
-  — the role's job is "make sure it's present" once, not "track
-  upstream". Ongoing updates go through Moonraker's own update manager
-  (for the plugins) or the main README's manual runbooks (for Klipper
-  itself).
+- **Keep software checkouts updated.** Every `git clone` here besides
+  `klipper_config_repo` uses `update: false` — the role's job is "make
+  sure it's present" once, not "track upstream". Ongoing updates go
+  through Moonraker's own update manager (for the plugins) or the main
+  README's manual runbooks (for Klipper itself). `klipper_config_repo`
+  is the one exception: that checkout is the live config, not a
+  software release to pin, so it pulls on every run and restarts
+  klipper/moonraker when the pull actually changes something (print-safety
+  checked — see its role's handlers).
 - **Provide `secrets.conf`.** It's gitignored and host-local by design
   (see the repo `CLAUDE.md`'s "Secrets" section). Copy it forward
   manually, same as the main README's deploy runbook already describes.
@@ -86,9 +90,14 @@ One role per concern, run in dependency order from `site.yml`:
    verified with `ssh-audit <hostname>.local`). The sshd drop-in is
    validated with `sshd -t` before the handler restarts `ssh`, so a bad
    config fails the playbook run instead of locking out a headless Pi.
-3. `klipper_config_repo` — clones this repo to `~/klipper_config` and
-   symlinks `~/printer_data/config` to `printers/<printer_name>`,
-   automating the main README's "Deploying to a printer" steps.
+3. `klipper_config_repo` — clones or pulls this repo to `~/klipper_config`
+   (unlike every other role's checkout, this one always updates — see
+   "What this does NOT do" above) and symlinks `~/printer_data/config`
+   to `printers/<printer_name>`, automating the main README's "Deploying
+   to a printer" steps. When a pull actually changes something on an
+   already-bootstrapped host, it also restarts klipper and moonraker —
+   refusing to if a print is active, same idle check as the `klipper`
+   role's own handlers.
 4. `klipper` — clones Klipper, builds `klippy-env`, installs
    `klipper.service` + `klipper-mcu.service`.
 5. `moonraker` — clones Moonraker, runs its official installer.
