@@ -1,0 +1,6 @@
+[Unit]
+Description=Periodically restart avahi-publish mDNS alias services to pick up IP changes
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart "avahi-alias@*.service"

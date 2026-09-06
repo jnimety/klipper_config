@@ -44,7 +44,7 @@
   changed_when: false
 
 # Both printers' [mcu rpi] section needs SPI (BLTouch/gpio wiring on
-# klipper-vs-146, the Picobilical's onboard ADXL345 on klipper-v0).
+# klipper-vs-146, the Picobilical's onboard ADXL345 on klipper-v0-4432).
 - name: Enable SPI interface
   ansible.builtin.command: raspi-config nonint do_spi 0
   become: true

@@ -1,0 +1,16 @@
+---
+- name: update /etc/hosts 127.0.1.1 line
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s'
+    line: "127.0.1.1\t{{ desired_hostname }}"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: restart avahi-daemon
+  ansible.builtin.systemd:
+    name: avahi-daemon
+    state: restarted
+  become: true

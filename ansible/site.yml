@@ -3,6 +3,7 @@
   gather_facts: true
   roles:
     - base
+    - {role: hostname, tags: [hostname]}
     - security
     - klipper_config_repo
     - klipper

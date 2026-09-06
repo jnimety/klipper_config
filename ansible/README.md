@@ -65,9 +65,12 @@ per-printer toggle.
   API/websocket (see `webcam_https_proxy` in Layout below). There's no
   per-printer toggle for this; it's how every printer in the fleet is
   provisioned.
-- **Flash a fresh SD card or set the hostname/SSH.** Assumes Raspberry Pi
-  OS is already imaged and reachable at `<hostname>.local` over SSH as
-  the `jnimety` user with passwordless sudo (the RPi OS default).
+- **Flash a fresh SD card or set up SSH.** Assumes Raspberry Pi OS is
+  already imaged and reachable at `<hostname>.local` over SSH as the
+  `jnimety` user with passwordless sudo (the RPi OS default). The
+  `hostname` role (see Layout below) can rename that initial hostname
+  later, but only once it's already reachable this way — it doesn't
+  help with first boot.
 
 ## Layout
 
@@ -80,7 +83,26 @@ One role per concern, run in dependency order from `site.yml`:
    mechanism rather than its stock zram+file default — zram's capacity
    is bounded by real RAM, which OOM-killed a `cc1` build on
    klipper-vs-146), the `printer_data` directory skeleton.
-2. `security` — OS hardening shared with this user's other Ansible-managed
+2. `hostname` — live OS hostname rename, for when a printer's identity
+   changes (e.g. getting an assigned serial number) after its Pi was
+   already imaged/named. A no-op on any host that doesn't set
+   `desired_hostname` in its own `host_vars`; defining that var is what
+   triggers the rename the next time the playbook runs against that
+   host, so land it deliberately and run limited to that one host
+   (`--limit <host>`), not as part of a routine both-printers run.
+   Before ever touching the live hostname, it stands up a standalone
+   `avahi-publish -a -R <name>.local <ip>` systemd service (from
+   `avahi-utils`) for every name listed in that host's `mdns_aliases`,
+   so old `<name>.local` references (bookmarks, CORS allowlists,
+   scripts) keep resolving via mDNS indefinitely after the rename —
+   avahi-daemon itself has no hostname-alias concept, so this is the
+   standard way to fake one. A daily timer restarts those alias
+   services since `avahi-publish` pins the IP at process start and
+   won't otherwise notice a DHCP lease change. Only once the alias is
+   already running does it rename the OS hostname
+   (`ansible.builtin.hostname`, plus a handler fixing `/etc/hosts`'
+   `127.0.1.1` line and restarting `avahi-daemon` — no reboot needed).
+3. `security` — OS hardening shared with this user's other Ansible-managed
    hosts (see `~/workspace/home-network/k3s.nimety.com/ansible`'s own
    `security` role): a `/etc/sudoers.d/` drop-in for passwordless sudo,
    and an `/etc/ssh/sshd_config.d/` drop-in restricting SSH to the key
@@ -90,7 +112,7 @@ One role per concern, run in dependency order from `site.yml`:
    verified with `ssh-audit <hostname>.local`). The sshd drop-in is
    validated with `sshd -t` before the handler restarts `ssh`, so a bad
    config fails the playbook run instead of locking out a headless Pi.
-3. `klipper_config_repo` — clones or pulls this repo to `~/klipper_config`
+4. `klipper_config_repo` — clones or pulls this repo to `~/klipper_config`
    (unlike every other role's checkout, this one always updates — see
    "What this does NOT do" above) and symlinks `~/printer_data/config`
    to `printers/<printer_name>`, automating the main README's "Deploying
@@ -98,10 +120,10 @@ One role per concern, run in dependency order from `site.yml`:
    already-bootstrapped host, it also restarts klipper and moonraker —
    refusing to if a print is active, same idle check as the `klipper`
    role's own handlers.
-4. `klipper` — clones Klipper, builds `klippy-env`, installs
+5. `klipper` — clones Klipper, builds `klippy-env`, installs
    `klipper.service` + `klipper-mcu.service`.
-5. `moonraker` — clones Moonraker, runs its official installer.
-6. `crowsnest` — webcam streaming (every printer gets one now). Backend
+6. `moonraker` — clones Moonraker, runs its official installer.
+7. `crowsnest` — webcam streaming (every printer gets one now). Backend
    and camera settings (`webcam_mode`/`webcam_device`/`webcam_resolution`/
    `webcam_max_fps`/`webcam_custom_flags`) are set per printer in
    `host_vars` — group default is a generic USB/UVC webcam via
@@ -110,7 +132,7 @@ One role per concern, run in dependency order from `site.yml`:
    The stream always binds loopback-only (`no_proxy: false` in
    `crowsnest.conf`, hardcoded, not a variable) — `webcam_https_proxy`
    below is what actually exposes it.
-7. `webcam_https_proxy` — runs on every printer unconditionally, not a
+8. `webcam_https_proxy` — runs on every printer unconditionally, not a
    per-host opt-in. One nginx vhost, reusing Moonraker's own certs,
    listening on both `443` and `moonraker_ssl_port` (7130, so existing
    external Mainsail/Fluidd configs pointed at the old `ssl_port` keep
@@ -132,30 +154,30 @@ One role per concern, run in dependency order from `site.yml`:
    otherwise race Moonraker for the same port at boot. Originated on vs-146
    as webcam-only (matching the HTTPS `/webcam/` URL it served before
    crowsnest replaced its old hand-rolled camera-streamer setup), later
-   extended to klipper-v0 for the same reason and then to proxying
+   extended to klipper-v0-4432 for the same reason and then to proxying
    Moonraker too, and eventually made unconditional across the fleet
    rather than a pair of per-host toggles — every printer should look
    identical here.
 
-8. `moonraker_telegram_bot`, `klipper_tmc_autotune`, `shaketune` — the
+9. `moonraker_telegram_bot`, `klipper_tmc_autotune`, `shaketune` — the
    three plugins already referenced in each printer's `moonraker.conf`.
-9. `firewall` — runs last. Installs `nftables` and renders
-   `/etc/nftables.conf` with a default-drop `input` chain (logged, rate
-   limited) that only opens SSH, mDNS, DHCPv4 client replies, `443`, and
-   `moonraker_ssl_port` (7130, owned by nginx) — Moonraker's plain
-   `port` and `webcam_port` (8080) stay bound but unreachable from the
-   LAN, since nginx reaches both over loopback. SSH/Moonraker/webcam
-   access is further scoped to `firewall_trusted_v4`/
-   `firewall_trusted_v6`, the same LAN/link-local ranges as both
-   printers' `moonraker.conf` `trusted_clients` — keep the two lists in
-   sync if either changes.
-   `forward` is default-drop (these hosts don't route), `output` is
-   left open. Because a bad rule here has no console to recover from on
-   a headless Pi, the new ruleset is validated with `nft -c` before
-   being written, and applying it schedules a `systemd-run` safety net
-   that flushes the ruleset back open a few minutes later — cancelled
-   only after this same playbook run confirms the SSH connection it's
-   using still works.
+10. `firewall` — runs last. Installs `nftables` and renders
+    `/etc/nftables.conf` with a default-drop `input` chain (logged, rate
+    limited) that only opens SSH, mDNS, DHCPv4 client replies, `443`, and
+    `moonraker_ssl_port` (7130, owned by nginx) — Moonraker's plain
+    `port` and `webcam_port` (8080) stay bound but unreachable from the
+    LAN, since nginx reaches both over loopback. SSH/Moonraker/webcam
+    access is further scoped to `firewall_trusted_v4`/
+    `firewall_trusted_v6`, the same LAN/link-local ranges as both
+    printers' `moonraker.conf` `trusted_clients` — keep the two lists in
+    sync if either changes.
+    `forward` is default-drop (these hosts don't route), `output` is
+    left open. Because a bad rule here has no console to recover from on
+    a headless Pi, the new ruleset is validated with `nft -c` before
+    being written, and applying it schedules a `systemd-run` safety net
+    that flushes the ruleset back open a few minutes later — cancelled
+    only after this same playbook run confirms the SSH connection it's
+    using still works.
 
 Per-printer values live in `host_vars/<hostname>.yml`; shared defaults
 (repo URLs, install paths, webcam settings) live in `group_vars/all.yml`.
@@ -165,7 +187,7 @@ Per-printer values live in `host_vars/<hostname>.yml`; shared defaults
 ```
 cd ansible
 ansible-playbook site.yml                        # both printers
-ansible-playbook site.yml --limit klipper-v0      # just one
+ansible-playbook site.yml --limit klipper-v0-4432 # just one
 ansible-playbook site.yml --check --diff          # dry run
 ```
 
@@ -193,7 +215,7 @@ ansible-playbook site.yml --check --diff          # dry run
 /dev/v4l/by-id/` on the host and set `webcam_device` in that printer's
   `host_vars` to the stable by-id path — `/dev/video0` (the default) can
   silently point at a different device after a reboot or a second USB
-  device gets plugged in. klipper-v0 has no camera attached yet (checked
+  device gets plugged in. klipper-v0-4432 has no camera attached yet (checked
   via `lsusb`/`libcamera-hello` over SSH), so this only matters once one
   is actually plugged in.
 - `moonraker.conf` and `crowsnest.conf` are both committed per-printer

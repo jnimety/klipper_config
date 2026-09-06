@@ -1,0 +1,17 @@
+[Unit]
+Description=Publish %i.local as an mDNS alias for this host (avahi-publish)
+Documentation=man:avahi-publish(1)
+After=avahi-daemon.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/avahi-publish -a -R %i.local {{ ansible_default_ipv4.address }}
+# avahi-publish exits 0 (not a failure) when avahi-daemon drops its D-Bus
+# connection (e.g. avahi-daemon restarting) -- Restart=on-failure would
+# never fire here, so this needs Restart=always to actually self-heal.
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

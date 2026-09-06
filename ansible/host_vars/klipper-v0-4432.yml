@@ -1,0 +1,20 @@
+printer_name: klipper-v0-4432
+# No camera attached yet (confirmed via ssh: no CSI camera detected, no
+# UVC device in lsusb) -- crowsnest still installs fine and picks up the
+# group_vars/all.yml ustreamer defaults; crowsnest.conf's device: just
+# won't have anything to stream from until one is plugged in.
+
+# --- Live OS hostname rename (roles/hostname) ---
+# This host's Pi-Imager-flashed hostname is still "klipper-v0". Renaming
+# it to match this printer's new serial-number identity, V0.4432. The
+# alias publisher below is what lets klipper-v0.local keep resolving
+# afterward -- see roles/hostname/tasks/main.yml. Defining this var is
+# what triggers the rename the next time the playbook runs against this
+# host -- do that deliberately (e.g. `--limit klipper-v0-4432`), not as
+# part of a routine both-printers run, until you're ready for it to land.
+desired_hostname: klipper-v0-4432
+# Old real hostname(s) to keep answering at <name>.local via a
+# standalone avahi-publish service, for back-compat with old
+# bookmarks/scripts that still point at klipper-v0.local.
+mdns_aliases:
+  - klipper-v0

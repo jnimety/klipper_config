@@ -16,7 +16,7 @@ klipper_config/
     │   ├── moonraker.conf
     │   ├── telegram.conf
     │   └── macros -> ../../macros
-    └── klipper-v0/             # Voron 0.2: SKR Pico + LDO Picobilical toolhead board / corexy / sensorless XY homing / Mainsail
+    └── klipper-v0-4432/       # Voron 0.2 (serial V0.4432): SKR Pico + LDO Picobilical toolhead board / corexy / sensorless XY homing / Mainsail
         ├── printer.cfg
         ├── ldo-upstream-printer.cfg  # unused vendor reference copy — not [include]'d by printer.cfg, kept for comparison against upstream
         ├── ldo-picobilical.cfg
@@ -65,20 +65,20 @@ klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the
 
 The two `.config` files above are curated, not raw menuconfig dumps — `make olddefconfig` resolves the rest of each target's Kconfig tree deterministically. One gotcha worth remembering: `CONFIG_MACH_STM32F103=y` alone isn't enough to select the STM32 architecture — menuconfig's top-level "Micro-controller Architecture" choice also needs `CONFIG_MACH_STM32=y` set first, or `olddefconfig` silently falls back to the first choice (AVR) instead of erroring.
 
-## Upgrading Klipper firmware (klipper-v0)
+## Upgrading Klipper firmware (klipper-v0-4432)
 
-klipper-v0 has three Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Pico / RP2040), the LDO Picobilical toolhead board (`[mcu umb]`, also RP2040 — same chip, same firmware build, only the flash target differs), and a host-side Linux process (`[mcu rpi]`, backing the ADXL345 accelerometer wired directly to the Pi's SPI/GPIO header — see `ldo-picobilical.cfg`). As with klipper-vs-146, building one target overwrites `~/klipper/.config`, so after rebuilding the Linux target, restore the RP2040 config too, or the next plain `make` silently targets the wrong architecture.
+klipper-v0-4432 has three Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Pico / RP2040), the LDO Picobilical toolhead board (`[mcu umb]`, also RP2040 — same chip, same firmware build, only the flash target differs), and a host-side Linux process (`[mcu rpi]`, backing the ADXL345 accelerometer wired directly to the Pi's SPI/GPIO header — see `ldo-picobilical.cfg`). As with klipper-vs-146, building one target overwrites `~/klipper/.config`, so after rebuilding the Linux target, restore the RP2040 config too, or the next plain `make` silently targets the wrong architecture.
 
 1. `cd ~/klipper && git pull --ff-only` — the checkout also carries untracked local files (`klippy/extras/autotune_tmc.py`, `motor_constants.py`, `motor_database.cfg`, from the `klipper_tmc_autotune` moonraker-managed plugin); a plain pull doesn't touch them.
 2. If `klippy-env`'s Python dependencies need a refresh (e.g. after a host OS Python version bump — `readlink -f ~/klippy-env/bin/python3` shows what it's currently pinned to): `rm -rf ~/klippy-env && virtualenv -p python3 ~/klippy-env && ~/klippy-env/bin/pip install -r ~/klipper/scripts/klippy-requirements.txt`, then `sudo systemctl restart klipper`.
 3. RP2040 firmware (same build serves both the main board and the toolhead — no need to rebuild between flashing each one):
-   - `cp ~/klipper_config/printers/klipper-v0/klipper-mcu-rp2040.config ~/klipper/.config && cd ~/klipper && make olddefconfig && make`
+   - `cp ~/klipper_config/printers/klipper-v0-4432/klipper-mcu-rp2040.config ~/klipper/.config && cd ~/klipper && make olddefconfig && make`
    - RP2040's built-in USB bootloader means `make flash` works directly — no SD-card dance needed. Flash the main board: `make flash FLASH_DEVICE=/dev/serial/by-id/usb-Klipper_rp2040_4550357129103DF8-if00`
    - Flash the toolhead board: `make flash FLASH_DEVICE=/dev/serial/by-id/usb-Klipper_rp2040_48313136300E9E7A-if00`
    - `sudo systemctl restart klipper`
 4. Host Linux MCU (`[mcu rpi]`):
-   - `cp ~/klipper_config/printers/klipper-v0/klipper-mcu-rpi.config ~/klipper/.config && cd ~/klipper && make olddefconfig && make && sudo make flash` (installs to `/usr/local/bin/klipper_mcu`, restarts `klipper-mcu.service`)
-   - Restore the RP2040 config: `cp ~/klipper_config/printers/klipper-v0/klipper-mcu-rp2040.config ~/klipper/.config && cd ~/klipper && make olddefconfig`
+   - `cp ~/klipper_config/printers/klipper-v0-4432/klipper-mcu-rpi.config ~/klipper/.config && cd ~/klipper && make olddefconfig && make && sudo make flash` (installs to `/usr/local/bin/klipper_mcu`, restarts `klipper-mcu.service`)
+   - Restore the RP2040 config: `cp ~/klipper_config/printers/klipper-v0-4432/klipper-mcu-rp2040.config ~/klipper/.config && cd ~/klipper && make olddefconfig`
    - `sudo systemctl restart klipper` — restarting `klipper-mcu.service` drops Klippy's existing connection to it; Klippy doesn't reconnect on its own.
 5. Verify: `curl -s http://localhost:7125/printer/info` should report `"state": "ready"` with `software_version` matching what `make` printed for both targets. Per LDO's guide, the ADXL345 FFC cable should stay unplugged except when actually running `ACCELEROMETER_QUERY`/`SHAPER_CALIBRATE` — Klipper reaches "ready" fine either way, since the `adxl345` module only probes the chip when a measurement starts.
 

@@ -1,0 +1,93 @@
+---
+# Renames a host's live OS hostname to match its printer identity, while
+# keeping any old hostname(s) answering via mDNS for back-compat with
+# bookmarks/scripts/CORS allowlists that still reference them -- see the
+# repo README's "hostname" role notes. A no-op on any host that doesn't
+# set desired_hostname/mdns_aliases in its own host_vars (i.e. every host
+# except one mid-rename).
+
+# 1. Alias publishers first, for every OLD name this host should keep
+#    answering to, BEFORE the hostname actually changes below -- so
+#    there's never a moment where nothing answers <old-name>.local.
+#    avahi-daemon has no built-in hostname-alias concept, so this runs
+#    avahi-publish (from avahi-utils) as its own small systemd service
+#    per alias name -- the standard technique for an mDNS "CNAME".
+
+- name: Install avahi-utils (for mDNS alias publishing)
+  ansible.builtin.apt:
+    name: avahi-utils
+    state: present
+  become: true
+  when: mdns_aliases | default([]) | length > 0
+
+- name: Install avahi-alias@.service systemd template
+  ansible.builtin.template:
+    src: avahi-alias@.service.j2
+    dest: /etc/systemd/system/avahi-alias@.service
+    mode: "0644"
+  become: true
+  when: mdns_aliases | default([]) | length > 0
+
+- name: Enable and start mDNS alias publisher for each old hostname
+  ansible.builtin.systemd:
+    name: "avahi-alias@{{ item }}.service"
+    daemon_reload: true
+    enabled: true
+    state: started
+  become: true
+  loop: "{{ mdns_aliases | default([]) }}"
+
+# avahi-publish pins the IP it was given at process start, so a DHCP
+# lease change is invisible to it until the process restarts. A daily
+# restart bounds that staleness cheaply without a full IP-change-watching
+# wrapper -- proportionate for a two-printer home fleet. A DHCP
+# reservation for this host is the real fix and worth doing regardless.
+
+- name: Install periodic avahi-alias restart service
+  ansible.builtin.template:
+    src: avahi-alias-restart.service.j2
+    dest: /etc/systemd/system/avahi-alias-restart.service
+    mode: "0644"
+  become: true
+  when: mdns_aliases | default([]) | length > 0
+
+- name: Install daily timer for avahi-alias restart
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/avahi-alias-restart.timer
+    content: |
+      [Unit]
+      Description=Daily restart of avahi-publish mDNS alias services
+
+      [Timer]
+      OnCalendar=daily
+      RandomizedDelaySec=30min
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+    mode: "0644"
+  become: true
+  when: mdns_aliases | default([]) | length > 0
+
+- name: Enable and start the periodic avahi-alias restart timer
+  ansible.builtin.systemd:
+    name: avahi-alias-restart.timer
+    daemon_reload: true
+    enabled: true
+    state: started
+  become: true
+  when: mdns_aliases | default([]) | length > 0
+
+# 2. Only now is it safe to rename the OS hostname -- the alias
+#    publisher above is already independently claiming the old name via
+#    avahi-publish -R, so it keeps answering once avahi-daemon stops
+#    treating that name as its own.
+
+- name: Set OS hostname
+  ansible.builtin.hostname:
+    name: "{{ desired_hostname }}"
+  become: true
+  when: desired_hostname is defined
+  notify:
+    - update /etc/hosts 127.0.1.1 line
+    - restart avahi-daemon
