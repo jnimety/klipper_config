@@ -97,3 +97,38 @@
     regexp: '^#?custom_flags:'
     line: "{{ 'custom_flags: ' + webcam_custom_flags if webcam_custom_flags | length > 0 else '#custom_flags:' }}"
   notify: restart crowsnest
+
+# Delays crowsnest's first (and only) attempt to open the camera, for
+# hardware where that can race a boot-time pipeline that isn't ready yet
+# -- see webcam_start_delay's definition in group_vars/all.yml and
+# klipper-vs-146's host_vars for the incident this covers. Symmetric
+# create/absent tasks (rather than one conditional copy) so resetting
+# webcam_start_delay back to 0 actually removes a previously-set
+# override instead of leaving it stale.
+- name: Ensure crowsnest.service.d drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/crowsnest.service.d
+    state: directory
+    mode: "0755"
+  become: true
+  when: webcam_start_delay | int > 0
+
+- name: Add crowsnest startup delay override for camera hardware readiness
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/crowsnest.service.d/override.conf
+    content: |
+      # Managed by ansible (roles/crowsnest) -- do not hand-edit.
+      [Service]
+      ExecStartPre=/bin/sleep {{ webcam_start_delay }}
+    mode: "0644"
+  become: true
+  when: webcam_start_delay | int > 0
+  notify: restart crowsnest
+
+- name: Remove crowsnest startup delay override when unset
+  ansible.builtin.file:
+    path: /etc/systemd/system/crowsnest.service.d/override.conf
+    state: absent
+  become: true
+  when: webcam_start_delay | int <= 0
+  notify: restart crowsnest

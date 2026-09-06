@@ -21,3 +21,12 @@ webcam_max_fps: 30
 # here overrides the earlier 1080 one (confirmed via a manual foreground
 # run that omitted it entirely, which also worked -- last value wins).
 webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-stream.height=1232 --camera-snapshot.height=1232 --camera-options=brightness=0.1 --camera-hflip --camera-vflip"
+# Observed 2026-09-06: after a reboot (likely from a libcamera package
+# upgrade), crowsnest.service started before the libcamera/Unicam
+# pipeline for this CSI camera was fully up. camera-streamer's one open
+# attempt failed ("Cannot open device"), and crowsnest never retried on
+# its own -- the webcam stayed dead (nginx 502 on /webcam/) for hours
+# until a manual `systemctl restart crowsnest`, by which point the
+# camera was free and it started fine. USB/ustreamer cameras haven't
+# shown this race, so it's set only here, not in the group default.
+webcam_start_delay: 15
