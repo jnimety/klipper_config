@@ -215,9 +215,10 @@ ansible-playbook site.yml --check --diff          # dry run
 /dev/v4l/by-id/` on the host and set `webcam_device` in that printer's
   `host_vars` to the stable by-id path — `/dev/video0` (the default) can
   silently point at a different device after a reboot or a second USB
-  device gets plugged in. klipper-v0-4432 has no camera attached yet (checked
-  via `lsusb`/`libcamera-hello` over SSH), so this only matters once one
-  is actually plugged in.
+  device gets plugged in. Both printers now have a CSI camera instead
+  (klipper-v0-4432's Camera Module 3 connected 2026-09-06, joining
+  klipper-vs-146's Camera Module v2), so neither currently exercises this
+  USB/by-id path — it only matters again if a USB webcam is ever added.
 - `moonraker.conf` and `crowsnest.conf` are both committed per-printer
   under `printers/<hostname>` already, pre-populated to match what
   crowsnest's installer + this role's `lineinfile` tasks converge on
