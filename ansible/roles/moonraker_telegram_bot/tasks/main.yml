@@ -39,24 +39,24 @@
     name: git_clone
   vars:
     git_clone_repo: "{{ moonraker_telegram_bot_repo_url }}"
-    git_clone_dest: "{{ ansible_env.HOME }}/moonraker-telegram-bot"
+    git_clone_dest: "{{ ansible_facts['env'].HOME }}/moonraker-telegram-bot"
     git_clone_version: master
 
 - name: Create scratch TMPDIR used by pip during bot install
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/space"
+    path: "{{ ansible_facts['env'].HOME }}/space"
     state: directory
     mode: "0755"
 
 - name: Create moonraker-telegram-bot virtualenv and install dependencies
   ansible.builtin.pip:
-    requirements: "{{ ansible_env.HOME }}/moonraker-telegram-bot/scripts/requirements.txt"
-    virtualenv: "{{ ansible_env.HOME }}/moonraker-telegram-bot-env"
+    requirements: "{{ ansible_facts['env'].HOME }}/moonraker-telegram-bot/scripts/requirements.txt"
+    virtualenv: "{{ ansible_facts['env'].HOME }}/moonraker-telegram-bot-env"
     virtualenv_command: virtualenv
     virtualenv_python: python3
     virtualenv_site_packages: true
   environment:
-    TMPDIR: "{{ ansible_env.HOME }}/space"
+    TMPDIR: "{{ ansible_facts['env'].HOME }}/space"
 
 - name: Install moonraker-telegram-bot.service
   ansible.builtin.template:

@@ -24,9 +24,9 @@
 # dialout: serial access to the main/toolhead MCU boards.
 # gpio/i2c: raspi-config-managed hardware interfaces.
 # video: the USB webcam device node crowsnest/ustreamer reads from.
-- name: Add {{ ansible_user_id }} to hardware access groups
+- name: Add {{ ansible_facts['user_id'] }} to hardware access groups
   ansible.builtin.user:
-    name: "{{ ansible_user_id }}"
+    name: "{{ ansible_facts['user_id'] }}"
     groups:
       - dialout
       - tty

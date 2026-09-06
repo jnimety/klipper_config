@@ -8,7 +8,7 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-User={{ ansible_user_id }}
-ExecStart={{ ansible_env.HOME }}/moonraker-telegram-bot-env/bin/python {{ ansible_env.HOME }}/moonraker-telegram-bot/bot/main.py -c {{ printer_data }}/config/telegram.conf -l {{ printer_data }}/logs/telegram.log
+User={{ ansible_facts['user_id'] }}
+ExecStart={{ ansible_facts['env'].HOME }}/moonraker-telegram-bot-env/bin/python {{ ansible_facts['env'].HOME }}/moonraker-telegram-bot/bot/main.py -c {{ printer_data }}/config/telegram.conf -l {{ printer_data }}/logs/telegram.log
 Restart=always
 RestartSec=5

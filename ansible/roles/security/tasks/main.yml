@@ -1,8 +1,8 @@
 ---
-- name: Allow {{ ansible_user_id }} passwordless sudo
+- name: Allow {{ ansible_facts['user_id'] }} passwordless sudo
   ansible.builtin.copy:
-    dest: "/etc/sudoers.d/99-{{ ansible_user_id }}"
-    content: "{{ ansible_user_id }} ALL=(ALL) NOPASSWD: ALL\n"
+    dest: "/etc/sudoers.d/99-{{ ansible_facts['user_id'] }}"
+    content: "{{ ansible_facts['user_id'] }} ALL=(ALL) NOPASSWD: ALL\n"
     mode: "0440"
     validate: "visudo -cf %s"
   become: true

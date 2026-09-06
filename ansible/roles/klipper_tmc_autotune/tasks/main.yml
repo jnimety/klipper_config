@@ -4,7 +4,7 @@
     name: git_clone
   vars:
     git_clone_repo: "{{ klipper_tmc_autotune_repo_url }}"
-    git_clone_dest: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
+    git_clone_dest: "{{ ansible_facts['env'].HOME }}/klipper_tmc_autotune"
     git_clone_version: main
 
 # Not become:true -- the script rejects running as EUID 0 and calls sudo
@@ -14,5 +14,5 @@
 - name: Run klipper_tmc_autotune's installer
   ansible.builtin.command: ./install.sh
   args:
-    chdir: "{{ ansible_env.HOME }}/klipper_tmc_autotune"
+    chdir: "{{ ansible_facts['env'].HOME }}/klipper_tmc_autotune"
     creates: "{{ klipper_home }}/klippy/extras/autotune_tmc.py"

@@ -17,7 +17,7 @@
 
 - name: Back up existing non-symlink printer_data/config
   ansible.builtin.command: >
-    mv {{ printer_data }}/config {{ printer_data }}/config.bak-{{ ansible_date_time.iso8601_basic_short }}
+    mv {{ printer_data }}/config {{ printer_data }}/config.bak-{{ ansible_facts['date_time'].iso8601_basic_short }}
   args:
     removes: "{{ printer_data }}/config"
   when: config_path.stat.exists and not config_path.stat.islnk

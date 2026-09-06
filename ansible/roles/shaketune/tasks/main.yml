@@ -4,7 +4,7 @@
     name: git_clone
   vars:
     git_clone_repo: "{{ klippain_shaketune_repo_url }}"
-    git_clone_dest: "{{ ansible_env.HOME }}/klippain_shaketune"
+    git_clone_dest: "{{ ansible_facts['env'].HOME }}/klippain_shaketune"
     git_clone_version: main
 
 # Not become:true -- same as klipper_tmc_autotune, script rejects EUID 0
@@ -15,7 +15,7 @@
 - name: Run Klippain Shake&Tune's installer
   ansible.builtin.command: ./install.sh
   args:
-    chdir: "{{ ansible_env.HOME }}/klippain_shaketune"
+    chdir: "{{ ansible_facts['env'].HOME }}/klippain_shaketune"
     creates: "{{ klipper_home }}/klippy/extras/shaketune"
   environment:
     KLIPPER_VENV: "{{ klippy_env }}"

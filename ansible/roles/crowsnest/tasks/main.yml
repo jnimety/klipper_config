@@ -4,7 +4,7 @@
     name: git_clone
   vars:
     git_clone_repo: "{{ crowsnest_repo_url }}"
-    git_clone_dest: "{{ ansible_env.HOME }}/crowsnest"
+    git_clone_dest: "{{ ansible_facts['env'].HOME }}/crowsnest"
     git_clone_version: master
 
 # crowsnest's own Makefile comment says "needs leading sudo" -- its
@@ -18,14 +18,14 @@
 - name: Run crowsnest's unattended installer
   ansible.builtin.command: bash tools/install.sh
   args:
-    chdir: "{{ ansible_env.HOME }}/crowsnest"
+    chdir: "{{ ansible_facts['env'].HOME }}/crowsnest"
     creates: /etc/systemd/system/crowsnest.service
   become: true
   environment:
     CROWSNEST_UNATTENDED: "1"
     CROWSNEST_ADD_CROWSNEST_MOONRAKER: "1"
-    BASE_USER: "{{ ansible_user_id }}"
-    SUDO_USER: "{{ ansible_user_id }}"
+    BASE_USER: "{{ ansible_facts['user_id'] }}"
+    SUDO_USER: "{{ ansible_facts['user_id'] }}"
 
 # The installer wrote crowsnest.conf (and possibly touched moonraker.conf)
 # as root; both live under printer_data/config, which is this git repo's
@@ -42,8 +42,8 @@
 - name: Restore ownership of crowsnest-touched config files
   ansible.builtin.file:
     path: "{{ item.item }}"
-    owner: "{{ ansible_user_id }}"
-    group: "{{ ansible_user_id }}"
+    owner: "{{ ansible_facts['user_id'] }}"
+    group: "{{ ansible_facts['user_id'] }}"
   loop: "{{ cfg_stats.results }}"
   when: item.stat.exists
   become: true
