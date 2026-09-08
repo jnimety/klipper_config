@@ -16,14 +16,17 @@ webcam_max_fps: 30
 # printer's own 1296 stream height up front avoids hitting that same bug
 # here. custom_flags is appended after crowsnest's own flags, so this
 # --camera-snapshot.height overrides the hardcoded 1080 (last value
-# wins). Confirmed upside down on the live stream (2026-09-06), same as
-# klipper-vs-146's mount -- hflip+vflip (full 180 deg) added below.
+# wins). Was upside down on the live stream as first mounted (2026-09-06,
+# same as klipper-vs-146's mount) so hflip+vflip (full 180 deg) were added;
+# remounted 2026-09-08 with the orientation corrected physically, so the
+# software flip was removed again -- don't re-add it without re-checking
+# the live stream first.
 # Camera is corner-mounted at nozzle height; bed is 120x120mm, so bed
 # center sits ~85mm away (half-diagonal). AfMode=0 (manual) + LensPosition
 # (diopters, 1/distance_m) locks focus there instead of relying on
 # continuous AF -- tried AfMode=2/AfRange=1 (continuous, macro range) first
 # but it hunted constantly against the mostly-bare bed's lack of texture.
-webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-hflip --camera-vflip --camera-options=\"AfMode=0\" --camera-options=\"LensPosition=11.8\""
+webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=0\" --camera-options=\"LensPosition=11.8\""
 # --- Live OS hostname rename (roles/hostname) ---
 # This host's Pi-Imager-flashed hostname is still "klipper-v0". Renaming
 # it to match this printer's new serial-number identity, V0.4432. The
