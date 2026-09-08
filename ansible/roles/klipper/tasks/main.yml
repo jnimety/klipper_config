@@ -31,7 +31,7 @@
   vars:
     git_clone_repo: "{{ klipper_repo_url }}"
     git_clone_dest: "{{ klipper_home }}"
-    git_clone_version: master
+    git_clone_version: "{{ klipper_repo_branch }}"
 
 - name: Create klippy-env and install klippy Python dependencies
   ansible.builtin.pip:

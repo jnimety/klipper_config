@@ -11,7 +11,10 @@ klippy_env: "{{ ansible_facts['env'].HOME }}/klippy-env"
 moonraker_home: "{{ ansible_facts['env'].HOME }}/moonraker"
 moonraker_env: "{{ ansible_facts['env'].HOME }}/moonraker-env"
 
-klipper_repo_url: https://github.com/Klipper3d/klipper.git
+# Kalico (github.com/KalicoCrew/kalico) is the default for a fresh provision of either
+# printer -- override both vars per-host to test mainline Klipper (primary branch: master).
+klipper_repo_url: https://github.com/KalicoCrew/kalico.git
+klipper_repo_branch: main
 moonraker_repo_url: https://github.com/Arksine/moonraker.git
 crowsnest_repo_url: https://github.com/mainsail-crew/crowsnest.git
 moonraker_telegram_bot_repo_url: https://github.com/nlef/moonraker-telegram-bot.git
