@@ -98,37 +98,57 @@
     line: "{{ 'custom_flags: ' + webcam_custom_flags if webcam_custom_flags | length > 0 else '#custom_flags:' }}"
   notify: restart crowsnest
 
-# Delays crowsnest's first (and only) attempt to open the camera, for
-# hardware where that can race a boot-time pipeline that isn't ready yet
-# -- see webcam_start_delay's definition in group_vars/all.yml and
-# klipper-vs-146's host_vars for the incident this covers. Symmetric
-# create/absent tasks (rather than one conditional copy) so resetting
-# webcam_start_delay back to 0 actually removes a previously-set
-# override instead of leaving it stale.
-- name: Ensure crowsnest.service.d drop-in directory exists
+# Retired 2026-09-08: the ExecStartPre=/bin/sleep drop-in this used to
+# install (gated on a per-host webcam_start_delay var) only ever addressed
+# crowsnest's boot-time camera race on klipper-vs-146. It never covered
+# the much more common failure the crowsnest-healthcheck timer below
+# handles instead -- camera-streamer dying hours into an otherwise
+# healthy run (observed on klipper-v0-4432 2026-09-08) -- since crowsnest
+# tries to open the camera exactly once and never retries either way.
+# One generic "is the stream actually up?" check subsumes the narrower
+# boot-only fix, so this cleans up any drop-in a previous run installed
+# rather than leaving it stale now that no task manages it going forward.
+- name: Remove retired crowsnest startup-delay drop-in, if present
   ansible.builtin.file:
     path: /etc/systemd/system/crowsnest.service.d
-    state: directory
-    mode: "0755"
-  become: true
-  when: webcam_start_delay | int > 0
-
-- name: Add crowsnest startup delay override for camera hardware readiness
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/crowsnest.service.d/override.conf
-    content: |
-      # Managed by ansible (roles/crowsnest) -- do not hand-edit.
-      [Service]
-      ExecStartPre=/bin/sleep {{ webcam_start_delay }}
-    mode: "0644"
-  become: true
-  when: webcam_start_delay | int > 0
-  notify: restart crowsnest
-
-- name: Remove crowsnest startup delay override when unset
-  ansible.builtin.file:
-    path: /etc/systemd/system/crowsnest.service.d/override.conf
     state: absent
   become: true
-  when: webcam_start_delay | int <= 0
   notify: restart crowsnest
+
+# crowsnest has no self-recovery for a libcamera camera-streamer subprocess
+# that crashes or fails to open the camera on its one and only startup
+# attempt (see libs/watchdog.sh -- it explicitly skips any device path
+# matching /base/soc, i.e. every CSI/libcamera camera) -- the stream then
+# stays dead until something restarts crowsnest.service itself. This
+# timer+script pair is that "something": poll the local stream and
+# restart the service if it's unresponsive.
+- name: Install crowsnest webcam health-check script
+  ansible.builtin.template:
+    src: crowsnest-healthcheck.sh.j2
+    dest: /usr/local/bin/crowsnest-healthcheck.sh
+    mode: "0755"
+  become: true
+
+- name: Install crowsnest-healthcheck systemd service
+  ansible.builtin.template:
+    src: crowsnest-healthcheck.service.j2
+    dest: /etc/systemd/system/crowsnest-healthcheck.service
+    mode: "0644"
+  become: true
+  notify: restart crowsnest-healthcheck timer
+
+- name: Install crowsnest-healthcheck systemd timer
+  ansible.builtin.template:
+    src: crowsnest-healthcheck.timer.j2
+    dest: /etc/systemd/system/crowsnest-healthcheck.timer
+    mode: "0644"
+  become: true
+  notify: restart crowsnest-healthcheck timer
+
+- name: Enable and start crowsnest-healthcheck timer
+  ansible.builtin.systemd:
+    name: crowsnest-healthcheck.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

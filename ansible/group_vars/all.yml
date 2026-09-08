@@ -42,10 +42,13 @@ webcam_custom_flags: ""
 # loopback-only on this port; the webcam_https_proxy role's nginx vhost
 # is what actually exposes it, at /webcam/ over HTTPS.
 webcam_port: 8080
-# Seconds crowsnest's systemd unit waits before its first (and only)
-# attempt to open the camera. 0 here (USB/ustreamer has no known boot
-# race); klipper-vs-146 overrides this -- see its host_vars for why.
-webcam_start_delay: 0
+# How often crowsnest-healthcheck.timer polls the local stream and
+# restarts crowsnest.service if it's unresponsive -- covers both a
+# boot-time camera race and camera-streamer crashing hours into a run,
+# since crowsnest itself never retries either way (see
+# roles/crowsnest/tasks/main.yml). Same for both printers; not worth a
+# per-host override.
+webcam_healthcheck_interval: 2min
 
 # Both printers' moonraker.conf hardcode these same values for
 # port/ssl_port -- kept here too so the webcam_https_proxy/firewall

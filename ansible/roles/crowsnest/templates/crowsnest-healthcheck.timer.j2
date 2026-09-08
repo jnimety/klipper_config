@@ -1,0 +1,11 @@
+# Managed by ansible (roles/crowsnest) -- do not hand-edit.
+[Unit]
+Description=Periodic crowsnest webcam health check
+
+[Timer]
+OnBootSec={{ webcam_healthcheck_interval }}
+OnUnitActiveSec={{ webcam_healthcheck_interval }}
+Unit=crowsnest-healthcheck.service
+
+[Install]
+WantedBy=timers.target

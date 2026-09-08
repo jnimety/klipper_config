@@ -27,6 +27,8 @@ webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-strea
 # attempt failed ("Cannot open device"), and crowsnest never retried on
 # its own -- the webcam stayed dead (nginx 502 on /webcam/) for hours
 # until a manual `systemctl restart crowsnest`, by which point the
-# camera was free and it started fine. USB/ustreamer cameras haven't
-# shown this race, so it's set only here, not in the group default.
-webcam_start_delay: 15
+# camera was free and it started fine. Originally worked around here
+# with a per-host webcam_start_delay (a fixed ExecStartPre sleep); retired
+# 2026-09-08 in favor of the fleet-wide crowsnest-healthcheck timer (see
+# group_vars/all.yml), which subsumes this boot race along with
+# camera-streamer crashing mid-run (observed on klipper-v0-4432).

@@ -4,3 +4,10 @@
     state: restarted
     daemon_reload: true
   become: true
+- name: restart crowsnest-healthcheck timer
+  ansible.builtin.systemd:
+    name: crowsnest-healthcheck.timer
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  become: true

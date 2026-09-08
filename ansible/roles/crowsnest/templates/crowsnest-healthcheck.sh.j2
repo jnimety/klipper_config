@@ -1,0 +1,15 @@
+#!/bin/bash
+# Managed by ansible (roles/crowsnest) -- do not hand-edit.
+#
+# crowsnest has no self-recovery for a libcamera camera-streamer subprocess
+# that crashes or fails to open the camera on its one and only startup
+# attempt -- see roles/crowsnest/tasks/main.yml for the incidents this
+# covers. Restart crowsnest.service whenever its own webcam stream stops
+# answering locally.
+set -u
+
+if ! curl --fail --silent --show-error --max-time 5 -o /dev/null \
+    "http://127.0.0.1:{{ webcam_port }}/snapshot"; then
+    logger -t crowsnest-healthcheck "webcam unresponsive, restarting crowsnest.service"
+    systemctl restart crowsnest.service
+fi

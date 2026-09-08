@@ -1,0 +1,8 @@
+# Managed by ansible (roles/crowsnest) -- do not hand-edit.
+[Unit]
+Description=Restart crowsnest if its webcam stream is unresponsive
+After=crowsnest.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/crowsnest-healthcheck.sh
