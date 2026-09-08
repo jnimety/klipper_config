@@ -62,6 +62,10 @@ A mode change made _inside_ a macro that always runs nested between an active `P
 
 `temperature_sensor` and fan (`heater_fan`/`controller_fan`/`temperature_fan`) object names are suffixed with their resource type — `_temp` for temperature sensors, `_fan` for fans — even though the section prefix already implies it (e.g. `mcu_temp`, `chamber_temp`, `hotend_fan`). This keeps the name unambiguous when read out of context, such as inside a `SENSOR="temperature_sensor chamber_temp"` string in a macro. Both printers follow this.
 
+## Comment style
+
+Keep comments inside `.cfg`/macro files short — a line, or a couple at most. State the non-obvious fact (a hidden constraint, why a value is what it is, a gotcha) and stop; don't narrate history, restate what the code already shows, or write CLAUDE.md-style long-form prose inline. That kind of exhaustive explanation belongs in this file, not in the config.
+
 ## Secrets
 
 Credentials (`secrets.conf`, Moonraker/Fluidd local state, printer host backups like `printer-*.cfg` and `.moonraker.conf.bkp`) are gitignored and kept out of version control — see `.gitignore` (patterns are unanchored, so they match under `printers/*/` too). Never add secrets back into tracked files; reference them via the existing `[secrets]` indirection pattern in `telegram.conf` instead.
