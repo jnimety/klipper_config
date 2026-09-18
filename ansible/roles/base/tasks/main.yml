@@ -89,6 +89,30 @@
   become: true
   register: rpi_swap_configured
 
+# Raspberry Pi OS ships these enabled by default, but neither printer host
+# has any use for them: no cellular modem (ModemManager), no paired BT
+# peripherals (bluetooth/hciuart -- the CSI camera and MCU boards don't
+# touch this), no NFS mounts (nfs-blkmap), and no local mail recipient
+# (exim4 -- moonraker-telegram-bot already owns notifications, see
+# macros/notify.cfg). Masked, not just disabled, so nothing (an apt
+# upgrade of the package, a udev rule for hciuart's dev-serial1.device)
+# re-enables them later. Confirmed exim4 alone holds ~22MB RSS on
+# klipper-v0-4432's 1GB Pi 4, which is real headroom on a host already
+# touching swap.
+- name: Disable and mask unnecessary default services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    masked: true
+    state: stopped
+  become: true
+  loop:
+    - exim4.service
+    - ModemManager.service
+    - bluetooth.service
+    - hciuart.service
+    - nfs-blkmap.service
+
 - name: Create printer_data directory skeleton
   ansible.builtin.file:
     path: "{{ printer_data }}/{{ item }}"
