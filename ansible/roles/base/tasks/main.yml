@@ -113,6 +113,38 @@
     - hciuart.service
     - nfs-blkmap.service
 
+# A previous run of this same role may have already held
+# firmware-brcm80211 at a different version -- apt refuses to touch a
+# held package non-interactively even with allow_downgrade, so clear any
+# existing hold before (re-)pinning. Always run when a pin is wanted;
+# harmless/no-op if nothing was held.
+- name: Ensure firmware-brcm80211 isn't held before (re-)pinning it
+  ansible.builtin.dpkg_selections:
+    name: firmware-brcm80211
+    selection: install
+  become: true
+  when: firmware_brcm80211_pin_version | length > 0
+
+# See host_vars/klipper-v0-4432.yml for the 2026-09-18 WiFi-auth-failure
+# incident this pins against. allow_downgrade so this also self-heals a
+# host that already picked up the regressed version before the pin
+# existed. apt-mark hold (not just installing the pinned version) is
+# what actually stops apt-daily-upgrade.timer from pulling it back in.
+- name: Pin firmware-brcm80211 to a known-good version
+  ansible.builtin.apt:
+    name: "firmware-brcm80211={{ firmware_brcm80211_pin_version }}"
+    state: present
+    allow_downgrade: true
+  become: true
+  when: firmware_brcm80211_pin_version | length > 0
+
+- name: Hold firmware-brcm80211 at that version
+  ansible.builtin.dpkg_selections:
+    name: firmware-brcm80211
+    selection: hold
+  become: true
+  when: firmware_brcm80211_pin_version | length > 0
+
 - name: Create printer_data directory skeleton
   ansible.builtin.file:
     path: "{{ printer_data }}/{{ item }}"

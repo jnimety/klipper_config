@@ -2,7 +2,7 @@
   hosts: printers
   gather_facts: true
   roles:
-    - base
+    - {role: base, tags: [base]}
     - {role: hostname, tags: [hostname]}
     - security
     - klipper_config_repo

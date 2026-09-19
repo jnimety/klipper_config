@@ -32,3 +32,15 @@ webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-strea
 # 2026-09-08 in favor of the fleet-wide crowsnest-healthcheck timer (see
 # group_vars/all.yml), which subsumes this boot race along with
 # camera-streamer crashing mid-run (observed on klipper-v0-4432).
+
+# 2026-09-18: same regression and same fix as klipper-v0-4432's host_vars
+# describes in full -- firmware-brcm80211 1:20260519-1~bpo13+1+rpt1 (same
+# BCM4345/6 chip, same build) broke v0's WiFi auth entirely. This host
+# was running the identical build and happened to come up fine on its
+# most recent reboot (no external_auth errors, wlan0 connected) -- but
+# since the regression is confirmed intermittent rather than
+# AP-specific, that was luck, not evidence this host is unaffected.
+# Downgraded to the same known-good 20250410-2 (Debian's own
+# non-RPi-specific build, generic BCM4345/6 blob) as v0 rather than
+# leaving this host on the untested-but-working version.
+firmware_brcm80211_pin_version: "20250410-2"

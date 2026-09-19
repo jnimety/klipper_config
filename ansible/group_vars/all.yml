@@ -94,3 +94,9 @@ swap_size_mib: 4096
 # when enabling SPI requires it. Left off by default since that's a
 # disruptive action this playbook shouldn't take without being asked.
 reboot_if_required: false
+
+# Empty by default (no pin) -- override per-host when a specific
+# firmware-brcm80211 build regresses WiFi on that host's AP/hardware
+# combo and needs to be held back. See host_vars/klipper-v0-4432.yml
+# for the one printer that currently needs this.
+firmware_brcm80211_pin_version: ""

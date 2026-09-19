@@ -41,3 +41,22 @@ desired_hostname: klipper-v0-4432
 # bookmarks/scripts that still point at klipper-v0.local.
 mdns_aliases:
   - klipper-v0
+# 2026-09-18: firmware-brcm80211 1:20260519-1~bpo13+1+rpt1 (Raspberry Pi's
+# own build, landed via a routine unattended-upgrade that sat un-rebooted
+# for 16 days) ships an RPi-4-specific BCM4345/6 blob
+# (brcmfmac43455-sdio.raspberrypi,4-model-b.bin, firmware build 7.45.265
+# "28bca26 CY") that fails 802.11 auth against this printer's AP --
+# wlan0 stuck NO-CARRIER, dmesg spamming
+# `brcmf_cyw_external_auth: External authentication failed: status=1`
+# forever. Confirmed via dmesg firmware version string, not just a config
+# issue -- the saved NetworkManager profile is plain WPA2-PSK (no
+# SAE/WPA3 involved) and the AP's own RSN IE only advertises PSK. Neither
+# the kernel version (tested 6.18.39 vs 6.18.50 -- both fail identically)
+# nor NetworkManager/wpasupplicant is the cause; only the firmware blob
+# is. Debian's own (non-RPi-specific) 20250410-2 build has no
+# board-specific variant for this chip, so the driver falls back to the
+# generic BCM4345/6 blob (build 7.45.234, dated 2021) instead, which
+# works. Pinned via apt-mark hold on the host too so
+# apt-daily-upgrade.timer can't silently pull the regression back in --
+# re-test with a newer firmware-brcm80211 before ever removing this pin.
+firmware_brcm80211_pin_version: "20250410-2"
