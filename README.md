@@ -11,7 +11,7 @@ klipper_config/
 │   ├── debug.cfg              # DUMP_PARAMETERS
 │   └── mainsail.cfg           # stock Mainsail client macros (PAUSE/RESUME/CANCEL_PRINT), used by both printers
 └── printers/
-    ├── klipper-vs-146/        # SKR Mini E3 / corexz / BLTouch / Fluidd
+    ├── klipper-vs-146/        # SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN toolhead / corexz / Cartographer V3 probe / Fluidd
     │   ├── printer.cfg
     │   ├── moonraker.conf
     │   ├── telegram.conf
@@ -64,6 +64,17 @@ klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the
 5. Verify: `curl -s http://localhost:7125/printer/info` should report `"state": "ready"` with `software_version` matching what `make` printed for both targets.
 
 The two `.config` files above are curated, not raw menuconfig dumps — `make olddefconfig` resolves the rest of each target's Kconfig tree deterministically. One gotcha worth remembering: `CONFIG_MACH_STM32F103=y` alone isn't enough to select the STM32 architecture — menuconfig's top-level "Micro-controller Architecture" choice also needs `CONFIG_MACH_STM32=y` set first, or `olddefconfig` silently falls back to the first choice (AVR) instead of erroring.
+
+## Setting up the CAN toolhead (klipper-vs-146 EBB SB2209 + Cartographer V3)
+
+klipper-vs-146's toolhead board (BTT EBB SB2209 CAN, RP2040) and probe (Cartographer V3) are the first CAN hardware in this repo, connected through a BTT U2C USB↔CAN bridge on the Pi. This is one-time host setup, not covered by ansible (same "hardware-specific, physical-access work" carve-out as MCU flashing generally — see `ansible/README.md`).
+
+1. Plug in the U2C and confirm it enumerates (`lsusb`); bring up a persistent `can0` interface at 1 Mbit (matches Cartographer's documented bus speed) — a `systemd-networkd` `.network`/`.netdev` unit is the usual approach, brought up with `ip link set can0 up type can bitrate 1000000`.
+2. Install [katapult](https://github.com/Arksine/katapult) (`~/katapult`) — used to flash both the EBB board and Cartographer over CAN.
+3. Build Klipper for RP2040 with "CAN bus (on gpio4/gpio5)" selected (this repo doesn't yet have a curated `klipper-mcu-ebb.config` for this target — generate one via `make menuconfig` during commissioning and save it alongside the other `klipper-mcu*.config` files here, following the existing pattern). Flash katapult's bootloader via USB/BOOTSEL first, then flash Klipper itself over CAN with `katapult/scripts/flashtool.py`.
+4. Install the Cartographer plugin: `curl -s -L https://raw.githubusercontent.com/Cartographer3D/cartographer3d-plugin/refs/heads/main/scripts/install.sh | bash -s -- --klipper ~/klipper --klippy-env ~/klippy-env`, then uncomment `[update_manager cartographer_plugin]` in `moonraker.conf`.
+5. Query both CAN UUIDs (`~/klipper/scripts/canbus_query.py can0` once running Klipper firmware, or `katapult/scripts/flashtool.py -i can0 -q` while still in bootloader) and fill them into `printer.cfg`'s `[mcu EBBCan]`/`[mcu cartographer]` `canbus_uuid:` placeholders.
+6. CAN termination: EBB and Cartographer are daisy-chained on one bus — only the physically-last device on the chain should have its termination resistor enabled, not both (see Cartographer's CAN termination docs).
 
 ## Upgrading Klipper firmware (klipper-v0-4432)
 
