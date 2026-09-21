@@ -13,7 +13,7 @@ Shared macros live in `macros/*.cfg`, included by both printers via a `macros` s
 
 ## Pattern 1: unconditional printer-local hooks
 
-The established pattern here (see `PRINT_START`/`HEAT_SOAK`) is: a shared macro calls a same-named, printer-specific macro **unconditionally**, and every printer is required to define that macro somewhere in its own `printer.cfg` — even if just a no-op — rather than the shared macro branching on printer identity. Known existing examples: `HEAT_SOAK` (real chamber wait on both, but gated by whether a `CHAMBER`/`CHAMBER_MINIMAL` target is set), `CHECK_BED_LEVEL` (real `SCREWS_TILT_CALCULATE` call on klipper-vs-146, no-op on klipper-v0-4432), `LOAD_BED_MESH` (real on klipper-vs-146, no-op on klipper-v0-4432).
+The established pattern here (see `PRINT_START`/`HEAT_SOAK`) is: a shared macro calls a same-named, printer-specific macro **unconditionally**, and every printer is required to define that macro somewhere in its own `printer.cfg` — even if just a no-op — rather than the shared macro branching on printer identity. Known existing examples: `HEAT_SOAK` (real chamber wait on both, but gated by whether a `CHAMBER`/`CHAMBER_MINIMAL` target is set), `CHECK_BED_LEVEL` (real `SCREWS_TILT_CALCULATE` call on klipper-vs-146, no-op on klipper-v0-4432).
 
 For every macro call added or changed inside `macros/*.cfg`:
 
