@@ -26,7 +26,7 @@ webcam_max_fps: 30
 # (diopters, 1/distance_m) locks focus there instead of relying on
 # continuous AF -- tried AfMode=2/AfRange=1 (continuous, macro range) first
 # but it hunted constantly against the mostly-bare bed's lack of texture.
-webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=0\" --camera-options=\"LensPosition=11.8\""
+webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=0\" --camera-options=\"LensPosition=11.8\""
 # --- Live OS hostname rename (roles/hostname) ---
 # This host's Pi-Imager-flashed hostname is still "klipper-v0". Renaming
 # it to match this printer's new serial-number identity, V0.4432. The

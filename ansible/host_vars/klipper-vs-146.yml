@@ -16,7 +16,7 @@ webcam_max_fps: 30
 # HdrMode=2 (sensor multi-exposure merge) instead -- made it worse, since
 # HDR tone-mapping lifts shadow/midtone brightness and can't fix lens
 # veiling glare from a source this bright; reverted.
-webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-hflip --camera-vflip"
+webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
 # pipeline for this CSI camera was fully up. camera-streamer's one open
