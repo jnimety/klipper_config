@@ -12,7 +12,10 @@ webcam_max_fps: 30
 # AeConstraintMode=1 (libcamera "Highlight" mode) biases AE to protect
 # highlights instead of metering for the whole dark scene, plus a modest
 # negative ExposureValue on top. Left AE enabled (no manual exposure lock)
-# since the LED's color/brightness changes across print phases.
+# since the LED's color/brightness changes across print phases. Tried
+# HdrMode=2 (sensor multi-exposure merge) instead -- made it worse, since
+# HDR tone-mapping lifts shadow/midtone brightness and can't fix lens
+# veiling glare from a source this bright; reverted.
 webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
