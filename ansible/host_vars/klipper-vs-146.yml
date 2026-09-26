@@ -1,26 +1,19 @@
 printer_name: klipper-vs-146
-# Raspberry Pi Camera Module v2.1 (IMX219, CSI ribbon), not a USB webcam --
-# crowsnest's camera-streamer backend takes the libcamera path directly as
-# `device:` and auto-detects --camera-type=libcamera from the /base/soc
-# prefix. Values below match the hand-rolled camera-streamer.service this
-# host was running before crowsnest replaced it (see git log / ansible
-# session notes) -- same resolution, fps, and image flags.
+# Raspberry Pi Camera Module 3 Wide (IMX708, CSI ribbon), replacing the
+# original Camera Module v2.1 as of 2026-09-25. Same camera-streamer/
+# libcamera path/quirks as klipper-v0-4432's Camera Module 3 -- see its
+# host_vars for the --camera-snapshot.height=1080 hardcode/pipeline note.
 webcam_mode: camera-streamer
-webcam_device: /base/soc/i2c0mux/i2c@1/imx219@10
-webcam_resolution: "1640x1232"
+webcam_device: /base/soc/i2c0mux/i2c@1/imx708@1a
+webcam_resolution: "2304x1296"
 webcam_max_fps: 30
-# crowsnest's own flag-building (libs/camera-streamer.sh) unconditionally
-# hardcodes --camera-snapshot.height=1080 and never sets --camera-nbufs/
-# --camera-video.height/--camera-stream.height at all -- unlike the
-# original hand-rolled service, which set all four to match the actual
-# 1232 capture height. Confirmed root cause of WebRTC producing zero
-# video RTP packets despite a fully connected transport (MJPG tolerated
-# the mismatch fine): the hardcoded 1080 snapshot height conflicting with
-# the 1232 video/stream height broke the H.264 encoder pipeline. custom_flags
-# is appended after crowsnest's own flags, so this --camera-snapshot.height
-# here overrides the earlier 1080 one (confirmed via a manual foreground
-# run that omitted it entirely, which also worked -- last value wins).
-webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1232 --camera-stream.height=1232 --camera-snapshot.height=1232 --camera-options=brightness=0.1 --camera-hflip --camera-vflip"
+# In the wide FOV, the enclosure's blue status LED (see notify.cfg) blew
+# out to solid white against the dark interior under default auto-exposure.
+# AeConstraintMode=1 (libcamera "Highlight" mode) biases AE to protect
+# highlights instead of metering for the whole dark scene, plus a modest
+# negative ExposureValue on top. Left AE enabled (no manual exposure lock)
+# since the LED's color/brightness changes across print phases.
+webcam_custom_flags: "--camera-nbufs=2 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
 # pipeline for this CSI camera was fully up. camera-streamer's one open
