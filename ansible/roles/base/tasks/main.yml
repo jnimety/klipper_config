@@ -10,6 +10,7 @@
     name:
       - git
       - curl
+      - jq
       - ca-certificates
       - avahi-daemon
       - virtualenv

@@ -49,6 +49,8 @@ For an already-bootstrapped host (symlink already in place), re-running `ansible
 
 ## Upgrading Klipper firmware (klipper-vs-146)
 
+`~/klipper_config/scripts/upgrade-klipper-vs-146.sh [-y]` automates everything below, plus the EBBCan toolhead over CAN (`katapult/scripts/flashtool.py`). It refuses to run mid-print, aborts on the first failure (leaving klipper stopped), always restores the main MCU's `.config`, and verifies every MCU's firmware version matches klippy afterward. The steps below are the manual fallback.
+
 klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Mini E3 v2.0 / STM32F103) and a host-side Linux process (`[mcu rpi]`, backing the `rpi:gpio12`/`13`/`18` pins and an SPI `cs_pin` in `printer.cfg`). Building one overwrites `~/klipper/.config`, so after rebuilding either target, restore the _other_ target's config too — otherwise the next plain `make` silently targets the wrong architecture.
 
 1. `cd ~/klipper && git pull --ff-only` — the checkout also carries untracked local files (`klippy/extras/autotune_tmc.py`, `motor_constants.py`, `motor_database.cfg`, from the `klipper_tmc_autotune` moonraker-managed plugin); a plain pull doesn't touch them.
@@ -77,6 +79,8 @@ klipper-vs-146's toolhead board (BTT EBB SB2209 CAN, RP2040) and probe (Cartogra
 6. CAN termination: EBB and Cartographer are daisy-chained on one bus — only the physically-last device on the chain should have its termination resistor enabled, not both (see Cartographer's CAN termination docs).
 
 ## Upgrading Klipper firmware (klipper-v0-4432)
+
+`~/klipper_config/scripts/upgrade-klipper-v0-4432.sh [-y]` automates everything below, with the same safety checks as the klipper-vs-146 script. The steps below are the manual fallback.
 
 klipper-v0-4432 has three Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Pico / RP2040), the LDO Picobilical toolhead board (`[mcu umb]`, also RP2040 — same chip, same firmware build, only the flash target differs), and a host-side Linux process (`[mcu rpi]`, backing the ADXL345 accelerometer wired directly to the Pi's SPI/GPIO header — see `ldo-picobilical.cfg`). As with klipper-vs-146, building one target overwrites `~/klipper/.config`, so after rebuilding the Linux target, restore the RP2040 config too, or the next plain `make` silently targets the wrong architecture.
 
