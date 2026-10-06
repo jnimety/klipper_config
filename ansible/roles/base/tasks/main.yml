@@ -52,6 +52,15 @@
   when: spi_state.stdout | trim == "1"
   register: spi_enabled
 
+# Appended at EOF, i.e. under config.txt's trailing [all] section.
+- name: Enable per-host device tree overlays
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/config.txt
+    line: "dtoverlay={{ item }}"
+  become: true
+  loop: "{{ boot_config_overlays }}"
+  register: boot_overlays_changed
+
 # Trixie's current swap manager. Conflicts/Replaces/Provides
 # dphys-swapfile, so this cleanly removes the older package as part
 # of the same apt transaction. Stock "auto" mechanism (zram+file) is
@@ -160,12 +169,13 @@
     - systemd
     - backup
 
-- name: Reboot if an interface/group/swap change requires it
+- name: Reboot if an interface/overlay/group/swap change requires it
   ansible.builtin.reboot:
   become: true
   when: >
     reboot_if_required and
     ((spi_enabled is defined and spi_enabled.changed) or
+     boot_overlays_changed.changed or
      user_groups_changed.changed or
      rpi_swap_installed.changed or
      rpi_swap_configured.changed)

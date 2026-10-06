@@ -74,6 +74,25 @@
   become: true
   notify: restart klipper-mcu
 
+# Hardware PWM channels used as rpi:pwmchipN/pwmM pins (host_vars
+# hard_pwm_exports) must be exported before klipper_mcu starts.
+- name: Create klipper-mcu.service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/klipper-mcu.service.d
+    state: directory
+    mode: "0755"
+  become: true
+  when: hard_pwm_exports | length > 0
+
+- name: Export hardware PWM channels before klipper-mcu starts
+  ansible.builtin.template:
+    src: klipper-mcu-pwm-export.conf.j2
+    dest: /etc/systemd/system/klipper-mcu.service.d/pwm-export.conf
+    mode: "0644"
+  become: true
+  when: hard_pwm_exports | length > 0
+  notify: restart klipper-mcu
+
 - name: Enable and start klipper.service
   ansible.builtin.systemd:
     name: klipper.service

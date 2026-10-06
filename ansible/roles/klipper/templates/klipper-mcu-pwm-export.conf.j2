@@ -1,0 +1,5 @@
+# klipper_mcu only opens pwmchipN/pwmM/*; it never exports the channel itself.
+[Service]
+{% for pwm in hard_pwm_exports %}
+ExecStartPre=/bin/sh -c '[ -d /sys/class/pwm/pwmchip{{ pwm.chip }}/pwm{{ pwm.channel }} ] || echo {{ pwm.channel }} > /sys/class/pwm/pwmchip{{ pwm.chip }}/export'
+{% endfor %}

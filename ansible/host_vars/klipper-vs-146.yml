@@ -40,3 +40,10 @@ webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-strea
 # non-RPi-specific build, generic BCM4345/6 blob) as v0 rather than
 # leaving this host on the untested-but-working version.
 firmware_brcm80211_pin_version: "20250410-2"
+
+# Hardware PWM on gpio12 (PWM0) for [heater_fan nevermore] -- 25kHz
+# instead of the host MCU's jittery 100Hz software PWM, which hummed.
+boot_config_overlays:
+  - "pwm,pin=12,func=4"
+hard_pwm_exports:
+  - { chip: 0, channel: 0 }

@@ -95,6 +95,14 @@ swap_size_mib: 4096
 # disruptive action this playbook shouldn't take without being asked.
 reboot_if_required: false
 
+# Extra dtoverlay= lines for /boot/firmware/config.txt (without the
+# "dtoverlay=" prefix). Override per-host; see the base role.
+boot_config_overlays: []
+
+# Hardware PWM channels to export for [mcu rpi] (list of {chip, channel}),
+# paired with a pwm overlay above. See the klipper role.
+hard_pwm_exports: []
+
 # Empty by default (no pin) -- override per-host when a specific
 # firmware-brcm80211 build regresses WiFi on that host's AP/hardware
 # combo and needs to be held back. See host_vars/klipper-v0-4432.yml
