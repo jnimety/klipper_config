@@ -13,6 +13,10 @@ klipper_config/
 └── printers/
     ├── klipper-vs-146/        # SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN toolhead / corexz / Cartographer V3 probe / Fluidd
     │   ├── printer.cfg
+    │   ├── bed_level.cfg      # CHECK_BED_LEVEL, SCREWS_TILT_CALCULATE, G32
+    │   ├── clean_nozzle.cfg   # nozzle brush + purge bucket
+    │   ├── status_leds.cfg    # *_NOTIFY LED overrides
+    │   ├── client_variables.cfg  # _CLIENT_VARIABLE for mainsail.cfg / filament.cfg
     │   ├── moonraker.conf
     │   ├── telegram.conf
     │   └── macros -> ../../macros
@@ -20,13 +24,15 @@ klipper_config/
         ├── printer.cfg
         ├── ldo-upstream-printer.cfg  # unused vendor reference copy — not [include]'d by printer.cfg, kept for comparison against upstream
         ├── ldo-picobilical.cfg
+        ├── status_leds.cfg
+        ├── client_variables.cfg
         ├── sensorless_homing.cfg
         ├── moonraker.conf
         ├── telegram.conf
         └── macros -> ../../macros
 ```
 
-Each printer directory has a `macros` symlink pointing at the top-level `macros/` directory, so a printer's `printer.cfg` can pull in shared macros with a same-directory-looking include — e.g. `[include macros/debug.cfg]` — without relying on `../` traversal through what is, on each host, itself a symlink (`~/printer_data/config`). Only files with zero hardware coupling belong in `macros/`; anything touching pins, kinematics, or printer-specific parking/heating behavior stays in the printer's own directory. `mainsail.cfg` is the one file there that isn't a pure `[gcode_macro]` set — it also carries a few generic, equally hardware-agnostic extras sections (`[virtual_sdcard]`, `[pause_resume]`, etc.). Both printers include it for `PAUSE`/`RESUME`/`CANCEL_PRINT` (it's UI-agnostic — klipper-vs-146 still uses Fluidd as its actual web UI), each with its own `printer.cfg`-level `[gcode_macro _CLIENT_VARIABLE]` customizing just what it needs. `PRINT_START`/`PRINT_END` differ enough between the two printers' hardware that they're left printer-specific.
+Each printer directory has a `macros` symlink pointing at the top-level `macros/` directory, so a printer's `printer.cfg` can pull in shared macros with a same-directory-looking include — e.g. `[include macros/debug.cfg]` — without relying on `../` traversal through what is, on each host, itself a symlink (`~/printer_data/config`). Only files with zero hardware coupling belong in `macros/`; anything touching pins, kinematics, or printer-specific parking/heating behavior stays in the printer's own directory. `mainsail.cfg` is the one file there that isn't a pure `[gcode_macro]` set — it also carries a few generic, equally hardware-agnostic extras sections (`[virtual_sdcard]`, `[pause_resume]`, etc.). Both printers include it for `PAUSE`/`RESUME`/`CANCEL_PRINT` (it's UI-agnostic — klipper-vs-146 still uses Fluidd as its actual web UI), each with its own `[gcode_macro _CLIENT_VARIABLE]` in its `client_variables.cfg`, customizing just what it needs. `PRINT_START`/`PRINT_END` differ enough between the two printers' hardware that they're left printer-specific.
 
 `secrets.conf` and Moonraker/Klipper-generated backup files (`printer-*.cfg`, `.moonraker.conf.bkp`, `.fluidd*.json`) are gitignored and stay host-local — see `.gitignore`.
 
