@@ -16,13 +16,14 @@ klipper_config/
 │   ├── notify.cfg             # _LED_SET + no-op *_NOTIFY defaults
 │   ├── park.cfg               # PARK
 │   ├── print_end.cfg          # PRINT_END
-│   ├── print_start.cfg        # PRINT_START + no-op printer hooks (CHECK_BED_LEVEL, CLEAN_NOZZLE_PARK, CLEAN_NOZZLE)
+│   ├── print_start.cfg        # PRINT_START + no-op printer hooks (CHECK_BED_LEVEL, CLEAN_NOZZLE_PARK, CLEAN_NOZZLE, BED_FANS)
 │   └── squiggly_purge.cfg     # SQUIGGLY_PURGE, vendored
 └── printers/
     ├── klipper-vs-146/        # SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN toolhead / corexz / Cartographer V3 probe / Fluidd
     │   ├── printer.cfg
     │   ├── bed_level.cfg      # CHECK_BED_LEVEL, SCREWS_TILT_CALCULATE, G32
     │   ├── clean_nozzle.cfg   # nozzle brush + purge bucket
+    │   ├── bed_fan.cfg        # BED_FANS: arms the bed fans' temperature_fan
     │   ├── status_leds.cfg    # *_NOTIFY LED overrides
     │   ├── client_variables.cfg  # _CLIENT_VARIABLE for mainsail.cfg / filament.cfg
     │   ├── moonraker.conf
@@ -64,7 +65,7 @@ For an already-bootstrapped host (symlink already in place), re-running `ansible
 
 `~/klipper_config/scripts/upgrade-klipper-vs-146.sh [-y]` automates everything below, plus the EBBCan toolhead over CAN (`katapult/scripts/flashtool.py`). It refuses to run mid-print, aborts on the first failure (leaving klipper stopped), always restores the main MCU's `.config`, and verifies every MCU's firmware version matches klippy afterward. The steps below are the manual fallback.
 
-klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Mini E3 v2.0 / STM32F103) and a host-side Linux process (`[mcu rpi]`, backing the `rpi:pwmchip0/pwm0` (gpio12, nevermore)/`rpi:pwmchip0/pwm1` (gpio13, case fan) hardware PWM pins (need `dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4` in `/boot/firmware/config.txt`, applied by the ansible base role)/`gpio18` pins and an SPI `cs_pin` in `printer.cfg`). Building one overwrites `~/klipper/.config`, so after rebuilding either target, restore the _other_ target's config too — otherwise the next plain `make` silently targets the wrong architecture.
+klipper-vs-146 has two Klipper MCU targets sharing one `~/klipper` checkout: the main board (`[mcu]`, SKR Mini E3 v2.0 / STM32F103) and a host-side Linux process (`[mcu rpi]`, backing the `rpi:pwmchip0/pwm0` (gpio12, bed_fan)/`rpi:pwmchip0/pwm1` (gpio13, case fan) hardware PWM pins (need `dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4` in `/boot/firmware/config.txt`, applied by the ansible base role)/`gpio18` pins and an SPI `cs_pin` in `printer.cfg`). Building one overwrites `~/klipper/.config`, so after rebuilding either target, restore the _other_ target's config too — otherwise the next plain `make` silently targets the wrong architecture.
 
 1. `cd ~/klipper && git pull --ff-only` — the checkout also carries untracked local files (`klippy/extras/autotune_tmc.py`, `motor_constants.py`, `motor_database.cfg`, from the `klipper_tmc_autotune` moonraker-managed plugin); a plain pull doesn't touch them.
 2. If `klippy-env`'s Python dependencies need a refresh (e.g. after a host OS Python version bump — `readlink -f ~/klippy-env/bin/python3` shows what it's currently pinned to): `rm -rf ~/klippy-env && virtualenv -p python3 ~/klippy-env && ~/klippy-env/bin/pip install -r ~/klipper/scripts/klippy-requirements.txt`, then `sudo systemctl restart klipper`.

@@ -41,7 +41,7 @@ webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-strea
 # leaving this host on the untested-but-working version.
 firmware_brcm80211_pin_version: "20250410-2"
 
-# Hardware PWM on gpio12 (PWM0, nevermore) and gpio13 (PWM1, case fan) --
+# Hardware PWM on gpio12 (PWM0, bed fan) and gpio13 (PWM1, case fan) --
 # steady edges instead of the host MCU's jittery software PWM, which hummed.
 boot_config_overlays:
   - "pwm-2chan,pin=12,func=4,pin2=13,func2=4"
