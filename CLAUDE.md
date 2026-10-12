@@ -2,73 +2,438 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Editing this file
+
+- Keep it as headed sections with short bullets: one fact, rule, or gotcha per bullet.
+- Use nested sub-bullets for detail (why, history, evidence) rather than growing a bullet into a paragraph.
+- Add new facts as new bullets in the matching section; edit only the bullets that actually change.
+- Don't hard-wrap bullets — a wrapped line reflows on every edit and bloats the diff.
+- Add a new `###` subsection rather than overloading an existing one when a topic grows.
+
 ## Repository purpose
 
-This is a personal [Klipper](https://www.klipper3d.org/) 3D printer configuration repo for two printers, not a software project. There is no build, lint, or test tooling — changes are validated by restarting Klipper/Moonraker on the printer's host and observing behavior, or by careful manual review of G-code macro logic. There are no automated tests to run.
+- A personal [Klipper](https://www.klipper3d.org/) 3D printer configuration repo for two printers, not a software project.
+- There is no build, lint, or test tooling, and no automated tests to run.
+- Changes are validated by restarting Klipper/Moonraker on the printer's host and observing behavior, or by careful manual review of G-code macro logic.
 
 ## Layout
 
 - `printers/klipper-vs-146/` — SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN (RP2040) toolhead, corexz kinematics, Cartographer V3 probe, Fluidd UI.
 - `printers/klipper-v0-4432/` — Voron 0.2 (SKR Pico + LDO Picobilical toolhead board), corexy kinematics, sensorless XY homing, Mainsail UI.
-- `macros/` — shared, hardware-agnostic gcode macros and client-macro config (`debug.cfg` / `DUMP_PARAMETERS`, `squiggly_purge.cfg` / `SQUIGGLY_PURGE`, `print_start.cfg` / `PRINT_START`, `print_end.cfg` / `PRINT_END`, `park.cfg` / `PARK`, `heat_soak.cfg` / `HEAT_SOAK`, `temperature_wait.cfg` / `TEMPERATURE_WAIT_WITH_TIMEOUT`, `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, `filament.cfg` / `LOAD_FILAMENT`+`UNLOAD_FILAMENT`, `mainsail.cfg` — see below). Each printer directory has a `macros` symlink to this directory, included as `[include macros/<file>.cfg]`. Only add files here that have zero hardware coupling (no pin references, no printer-specific parking/heating values) — everything else belongs in the printer's own directory; most files here are pure `[gcode_macro]` definitions, but `mainsail.cfg` is the one exception that also carries a few generic, equally hardware-agnostic extras sections (`[virtual_sdcard]`, `[pause_resume]`, etc.) alongside its macros. `PRINT_END` is shared too (see below) — both printers' hardware needs turned out identical enough (generic heater/fan shutdown, generic axis-max-based wipe/park moves) that there was never a reason to split it. `PAUSE`/`RESUME`/`CANCEL_PRINT` are unified at the vendor level instead: both printers now include the same vendored `macros/mainsail.cfg` client macro pack — the Alex Zellner `_CLIENT_VARIABLE`-based macro set (runout-sensor awareness, idle-timeout restore, temp restore, configurable park/retract, pause-at-layer; its `RESUME`/`PAUSE`/`CANCEL_PRINT` chain from the `[pause_resume]` built-ins via `rename_existing: RESUME_BASE` etc.) — rather than each hand-rolling its own (it's UI-agnostic — klipper-vs-146 still uses Fluidd as its actual web UI). Genuinely do not hand-edit this file, it's meant to stay a clean copy of the upstream template — upstream is [mainsail-crew/mainsail-config](https://github.com/mainsail-crew/mainsail-config)'s `client.cfg` (the repo renamed it from `mainsail.cfg` in 2023; this repo keeps the old filename since that's already what both printers' includes/docs reference). Confirmed byte-identical to upstream as of the `_CLIENT_LINEAR_MOVE` addition (2024-11-24) — if re-syncing from upstream later, note that this repo's copy does **not** include an `[exclude_object]` section even though an earlier local copy briefly had one; that support now lives as an explicit `[exclude_object]` in each printer's own `printer.cfg` instead (re-copying the file wholesale from upstream is safe and won't lose it). It ships its own extension point instead: a fully-commented-out `[gcode_macro _CLIENT_VARIABLE]` template (with `variable_user_resume_macro`/`variable_runout_sensor`/etc. hooks) that users are meant to copy into `printer.cfg` and customize. Each printer's own `client_variables.cfg` defines its own **partial** `_CLIENT_VARIABLE` — only the specific variables it needs, not the full template, since every other `client.*` lookup in `mainsail.cfg` already falls back gracefully via `|default(...)` when a variable isn't set: klipper-v0-4432 sets `user_resume_macro: "_RESUME_NOTIFY"` plus `runout_sensor: "filament_switch_sensor Filament_Runout_Sensor"`; klipper-vs-146 sets that same pair of variables plus `runout_sensor: "filament_motion_sensor filament_sensor"` (aborts `RESUME` if no filament is detected — this replaced vs-146's old manual `SET_FILAMENT_SENSOR` enable/disable around pause/resume/cancel, which had no equivalent in `mainsail.cfg` and was dropped rather than replicated). Both printers now gate `RESUME` on filament presence this way, just against their own sensor's config name. Don't copy the rest of the template in without a reason; it'd silently change working `PAUSE`/`CANCEL_PRINT`/park defaults. Never add a same-named `printer.cfg` override of `PAUSE`/`RESUME`/`CANCEL_PRINT` — see the `rename_existing` warning below for why that silently corrupts `mainsail.cfg`'s real logic instead of chaining onto it; use the `_CLIENT_VARIABLE` hooks instead.
+- `macros/` — shared, hardware-agnostic gcode macros and client-macro config (see [Shared macros](#shared-macros-macros)):
+  - `debug.cfg` — `DUMP_PARAMETERS`
+  - `squiggly_purge.cfg` — `SQUIGGLY_PURGE` (vendored)
+  - `print_start.cfg` — `PRINT_START` plus no-op defaults for its printer hooks
+  - `print_end.cfg` — `PRINT_END`
+  - `park.cfg` — `PARK`
+  - `heat_soak.cfg` — `HEAT_SOAK`
+  - `temperature_wait.cfg` — `TEMPERATURE_WAIT_WITH_TIMEOUT`
+  - `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`/pulse machinery
+  - `filament.cfg` — `LOAD_FILAMENT`, `UNLOAD_FILAMENT`, `M600`, `_TIP_SHAPING`
+  - `mainsail.cfg` — vendored client macro pack (`PAUSE`/`RESUME`/`CANCEL_PRINT` etc.)
+- Each printer directory has a `macros` symlink to `macros/`, included as `[include macros/<file>.cfg]`.
+- `scripts/` — firmware upgrade scripts (see [Scripts](#scripts)).
+- See `README.md` for the full directory tree and the deployment runbook.
+  - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.
 
-  `PRINT_START` and `HEAT_SOAK` are the exceptions — both shared, with any genuinely hardware-specific step delegated to a printer-local macro that the shared one calls unconditionally. `PRINT_START` heats the bed itself (`M190`, generic — both printers have `[heater_bed]`), then calls: `BED_FANS BED=<target>` right after `M190` settles (no-op default in `print_start.cfg`; `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS` — see the Big P4ppa note below for vs-146's override), `HEAT_SOAK` (two phases on the shared `temperature_sensor chamber_temp`, skipped if no target is set above 0: first an uncapped wait for `CHAMBER_MINIMAL` — or `CHAMBER` if unset — so a minimum the chamber can't reach will hang the print; then, fans still on, `TEMPERATURE_WAIT_WITH_TIMEOUT` toward `CHAMBER` for at most `PRINT_START`'s `CHAMBER_SOAK` seconds, default 1800 (30 min). OrcaSlicer enforces `chamber_temperature >= chamber_minimal_temperature`, so `CHAMBER` is the soak goal and `CHAMBER_MINIMAL` the hard floor), then re-homes Z (`G28 Z`, generic — both printers' homing setups handle a Z-only home safely: klipper-vs-146's `[safe_z_home]` repositions to its own safe XY point first, klipper-v0-4432's `[homing_override]` already treats `G28 Z` as Z-only) since frame thermal expansion during the soak can drift the cold Z homing reference taken earlier in this same macro, and `CHECK_BED_LEVEL` (real on klipper-vs-146: heats the nozzle to 150C, homes Z via Cartographer's `CARTOGRAPHER_TOUCH_HOME` for an accurate real Z0, then calibrates a fresh adaptive mesh — a no-op on klipper-v0-4432, no probe). There is no separate `LOAD_BED_MESH` step — a printer whose bed-level check doesn't itself produce a usable mesh (e.g. one that wants a saved profile instead of a fresh adaptive calibration) should load it from inside its own `CHECK_BED_LEVEL` override rather than reintroducing a second unconditional hook; klipper-vs-146's `CHECK_BED_LEVEL` already leaves a freshly calibrated mesh active, so it needs no load step of its own. The final hotend heat follows the same pattern: `CLEAN_NOZZLE_PARK` right before `M109` (wait over a purge bucket so heat-up ooze drops there) and `CLEAN_NOZZLE` right after (scrub on a brush before `SQUIGGLY_PURGE`), both no-op defaults in `print_start.cfg`. klipper-vs-146 overrides both in its own `clean_nozzle.cfg` for its Enderwire silicone brush + drop hole on the bed's front-right corner ([printables 1143673](https://www.printables.com/model/1143673)), and its `CHECK_BED_LEVEL` also calls the pair around its own `M109 S150` so the nozzle is clean for `CARTOGRAPHER_TOUCH_HOME`. All brush/bucket geometry and wipe tuning lives as `variable_*` on `CLEAN_NOZZLE_PARK` alone; `CLEAN_NOZZLE` reads it via `printer["gcode_macro CLEAN_NOZZLE_PARK"]`. Both refuse to run unhomed, always raise to `travel_z` before any XY travel (the brush top is at bed level, so the scrub depth is below Z0; the bracket sits below the bed, so the scrub drags straight from the brush into the hole at brush depth), and wrap themselves in `SAVE/RESTORE_GCODE_STATE`. `CLEAN_NOZZLE` also drops accel to `wipe_accel` for the scrub and restores it afterward, since gcode state doesn't cover accel. The macro is this repo's own, drawing on the Voron Decontaminator, Klippain's `CLEAN_NOZZLE`, and the brush author's park-while-heating idea. New printer-specific steps inside a shared macro should follow this same pattern: call a same-named macro unconditionally, then give every printer an implementation (even if a no-op) rather than branching on printer identity inside the shared file.
+## Shared macros (`macros/`)
 
-  `PRINT_START`'s final step, `SQUIGGLY_PURGE`, is a third vendored file (`macros/squiggly_purge.cfg`, upstream [mjonuschat/voron-mods](https://github.com/mjonuschat/voron-mods/tree/main/Squiggly%20Purge)) kept byte-identical to upstream like `mainsail.cfg` — do not hand-edit it, re-copy wholesale from upstream instead. Unlike `mainsail.cfg` it needs no per-printer extension point: every hardware-specific value it needs (nozzle/filament diameter, `max_extrude_cross_section`, bed bounds, live `[exclude_object]` polygons for adaptive positioning) it already reads straight from `printer.configfile`/`printer.toolhead`/`printer.exclude_object`, so both printers call it the same way, `SQUIGGLY_PURGE PURGE_LENGTH=50` (the one param `print_start.cfg` passes; the `PRIME_LINE` macro it replaced took no params at all). Both printers' configured `max_extrude_cross_section` (`1.1` mm², explicit on both, replacing vs-146's earlier implicit 0.64 mm² Klipper default and v0-4432's earlier 0.8 mm²) is sized specifically to clear that 50mm purge at the macro's stock `LINE_HEIGHT=0.6` without triggering its built-in self-correction (which needs roughly 1.05 mm² for that purge length at the default squiggle-path geometry) — so no `action_respond_info` correction fires on either printer at these settings. If `PURGE_LENGTH`, `LINE_HEIGHT`, or the squiggle path params (`STEPS`/`PERIODS`/`AMPLITUDE`/`PERIOD_LENGTH`) on the `print_start.cfg` call ever change, re-check whether `max_extrude_cross_section` still covers the new purge without falling back into auto-correction.
+### What belongs in `macros/`
 
-  Status notification (LED + console + Telegram + LCD) follows a public/private split. Public macros are named for what they indicate, not their color — `_HEAT_SOAK_NOTIFY` (orange; called from `PRINT_START` itself for the bed-heat and hotend-heat steps, and from `HEAT_SOAK` for the chamber soak — anywhere the printer is actively heating something, not just during a chamber soak, despite the macro's name), `_HEAT_SOAK_SKIPPED_NOTIFY` (blue; called from `HEAT_SOAK` instead of `_HEAT_SOAK_NOTIFY` when no `CHAMBER`/`CHAMBER_MINIMAL` target is set, so nothing is actually heating — a distinct macro rather than reusing `_HEAT_SOAK_NOTIFY` with a different color, since the color a `*_NOTIFY` override sets is fixed per macro, not passable by the caller), `_PRINT_START_NOTIFY` (blue; called from `PRINT_START` at the very top, again for the mid-sequence bed-level-check step, and again right before `SQUIGGLY_PURGE` — anywhere the printer is just running its normal start sequence with nothing to report; klipper-vs-146's `SCREWS_TILT_CALCULATE` also calls it at the start of every probe pass, so the lights go solid blue while probing instead of freezing a leftover `_ATTENTION_NOTIFY` pulse mid-fade), `_PRINT_END_NOTIFY` (called from each printer's own `PRINT_END`), `_ATTENTION_NOTIFY` (called from any macro that pauses for manual user input — the shared `M600` (see below), klipper-vs-146's own `SCREWS_TILT_CALCULATE`, and klipper-vs-146's `[filament_motion_sensor filament_sensor]` `runout_gcode`; klipper-v0-4432 has no other pause point of its own yet), `_RESUME_NOTIFY` (called via `macros/mainsail.cfg`'s `user_resume_macro` hook — see above — rather than a same-named `RESUME` override), `_CANCEL_NOTIFY` (called via `macros/mainsail.cfg`'s `user_cancel_macro` hook, the same way). All seven no-op defaults live together in `notify.cfg` regardless of which macro calls them — `_PRINT_START_NOTIFY`/`_HEAT_SOAK_NOTIFY`/`_HEAT_SOAK_SKIPPED_NOTIFY` are called from the shared `PRINT_START`/`HEAT_SOAK`, while `_PRINT_END_NOTIFY`/`_ATTENTION_NOTIFY`/`_RESUME_NOTIFY`/`_CANCEL_NOTIFY` are called from printer-local macros — so this is the one place to look for the full set. Each is safe to call from any printer. Both printers now have a light and override every one of them, in their own `status_leds.cfg`, by simply **redefining the macro** — same section name, no `rename_existing` — to call `_LED_SET NAME=<color> LED=<their light>` — a single **private**, underscore-prefixed, shared entry point (also in `notify.cfg`; the leading underscore is Klipper's own convention for hiding a macro from the web UI's macro panel, signaling "internal helper, not meant to be invoked directly"). Passing `LED=` as a param is what lets this stay a single shared macro instead of a per-printer copy — klipper-vs-146 passes `LED=enclosure` (RGB hardware; the unused `WHITE` component is harmless to pass), klipper-v0-4432 passes `LED=bed_light` (RGBW).
+- Only files with zero hardware coupling: no pin references, no printer-specific parking/heating values.
+- Everything else belongs in the printer's own directory.
+- Most files are pure `[gcode_macro]` definitions.
+  - Exception: `mainsail.cfg` also carries a few generic, equally hardware-agnostic extras sections (`[virtual_sdcard]`, `[pause_resume]`, etc.).
 
-  **Do not add `rename_existing` to these overrides.** Klipper's config loader merges same-named `[gcode_macro X]` sections across every included file into one final section (`configfile.py` builds the parser with `strict=False` specifically so overrides "apply linearly as they do within a single file") — a later block's `gcode:`/`description:` simply overwrite the earlier block's, which is exactly the full-replacement behavior these overrides want, no chaining mechanism required. `rename_existing` only makes sense when overriding a macro that has genuinely distinct content underneath that must still run — and since the same merge applies there too, a second `[gcode_macro SAME_NAME]` block doesn't produce two chainable objects, it collapses into the _one_ merged section Klipper actually loads. Concretely: `rename_existing` only works safely when the name being renamed is a Klipper **built-in** (registered by an extras module — e.g. `PAUSE`/`RESUME`/`CANCEL_PRINT`/`SET_PRINT_STATS_INFO` from `[pause_resume]`, `SCREWS_TILT_CALCULATE` from `[screws_tilt_adjust]`, `BED_MESH_CALIBRATE` from `[bed_mesh]`) — those are registered independently, before any config-file `[gcode_macro]` merging happens, so there's a real separate registration for the override to find at `klippy:connect`. A same-named `[gcode_macro RESUME]` override was tried here once to reset the LED on resume and had to be reverted after redeploying to klipper-v0-4432 exposed the bug: the override's section name collided with `mainsail.cfg`'s real `RESUME` macro, silently discarding its actual resume logic in the merge — not a crash, a silent regression, only caught because that redeploy was the first time this config had ever actually been parsed by Klipper. `_RESUME_NOTIFY` is now wired up correctly instead, without a same-named override — via `macros/mainsail.cfg`'s `user_resume_macro` hook, described above.
+### Sharing patterns
 
-  Color scheme (deliberately tight — same meaning on both printers): `blue` = actively running (`_PRINT_START_NOTIFY`), `orange` = heating/warming up, not a problem (`_HEAT_SOAK_NOTIFY`), `yellow` pulsing = needs your attention (`_ATTENTION_NOTIFY`), `green` = done (`_PRINT_END_NOTIFY`). `red` is intentionally unused by any indicator right now — reserved for a real fault, so it doesn't get diluted by reuse elsewhere (e.g. don't repurpose it for heating or any other non-error state). `off`/`white` remain general-purpose presets in `_LED_COLOR`, not tied to a print-lifecycle indicator.
+Pick the pattern that matches the macro being shared:
 
-  `_LED_SET` normally sets a solid color via `_LED_COLOR` (the lower-level macro holding the actual name→RGBW lookup and `SET_LED` call — `_LED_SET` always cancels any in-progress pulse first, then delegates). Pass `PULSE=1` (used by both printers' `_ATTENTION_NOTIFY`) for a slow breathing fade instead of a solid color: since gcode macros run synchronously and can't block for the life of a pause, the actual animation lives in `[delayed_gcode _LED_PULSE]`, a self-rescheduling timer (fires every 0.15s, `initial_duration: 0` so it's dormant until triggered) that ramps `_LED_COLOR`'s `BRIGHTNESS` param between 0.2 and 1.0 across a 24-step triangle wave (~7s per full breath), starting at full brightness and fading down — the floor and bright start exist because a tick parked behind a long command (e.g. back-to-back `SCREWS_TILT_CALCULATE` runs) freezes the light wherever it was, and a 0-floor pulse frozen near the bottom looked like the light had turned off and reschedules itself via `UPDATE_DELAYED_GCODE`. Its state (which LED, which color, current step/direction, and an `active` flag) persists between ticks in `_LED_PULSE_STATE`, a `[gcode_macro]` used purely as variable storage (set via `SET_GCODE_VARIABLE`, read via `printer["gcode_macro _LED_PULSE_STATE"]`) since `[delayed_gcode]` can't receive params at trigger time. The `[delayed_gcode]` body is just a call to `_LED_PULSE_TICK`, which does the actual work only while `active` is set (`_LED_SET` sets it to 1 for a pulse and 0 for any solid color). This guards against a race in Klipper's `delayed_gcode.py`. When the timer fires, it sets `inside_timer`, renders its template **immediately**, and then blocks on the gcode mutex. A long-running command such as `SCREWS_TILT_CALCULATE` holds that mutex, so a tick is almost always parked behind it. While a tick is parked, `_LED_SET`'s `UPDATE_DELAYED_GCODE DURATION=0` only clears `repeat`; it does not cancel the timer. The parked tick then replayed its stale script, which ended with a fresh `DURATION=0.15`, and pulsed forever over the new solid color. A `[gcode_macro]` is rendered at dispatch time, after the mutex is acquired, so `_LED_PULSE_TICK` sees the current `active` flag and simply declines to reschedule. `_RESUME_NOTIFY` (solid `blue`, no `PULSE`) cancels any in-progress pulse the same way, so resuming from an `_ATTENTION_NOTIFY` pause clears it immediately.
+- **Vendored upstream file** — byte-identical copy, never hand-edited (`mainsail.cfg`, `squiggly_purge.cfg`).
+- **Shared macro + printer hooks** — the shared macro calls a same-named printer-local macro unconditionally; every printer provides an implementation, even if a no-op (`PRINT_START`, `HEAT_SOAK`, `*_NOTIFY`).
+  - Never branch on printer identity inside a shared file.
+- **Shared logic, per-printer numbers** — one plain shared macro reads hardware-specific numbers from each printer's `_CLIENT_VARIABLE` (`LOAD_FILAMENT`/`UNLOAD_FILAMENT`).
+  - Don't invent a "reasonable universal default" inside the shared macro — require the printer's `_CLIENT_VARIABLE` to state it.
+  - Don't use per-printer wrapper macros or a private engine macro for this.
+- **Plain shared definition** — once a macro has no printer-specific data left (all its dependencies are shared), make it a single plain definition (`M600`, `PRINT_END`, `PARK`).
+  - Don't force-fit it into the hook or engine-plus-wrapper patterns.
 
-  Every LED change also notifies the console, Telegram, and the LCD, so all three stay in sync rather than requiring each call site to remember a separate `RESPOND`/`M117`. This lives in `_LED_SET` itself: it takes an optional `MSG`, and when present emits a plain `RESPOND` (console), a `RESPOND PREFIX=tgnotify` (Telegram, via moonraker-telegram-bot), and an `M117` (LCD status line). Because it's keyed off `_LED_SET`, the notification only fires on a printer where the `*_NOTIFY` override actually has a light to set — on the no-op defaults nothing changed, so nothing is said. Most `_NOTIFY` public macros just forward a caller-supplied `MSG` straight through to `_LED_SET` (e.g. `PRINT_START` calls `_PRINT_START_NOTIFY MSG="🖨️ Print started! Hotend: {target_extruder}c, Bed: {target_bed}c"`; `M600` calls `_ATTENTION_NOTIFY MSG="⚠️ Filament Change (M600) needs your attention."`) — this is what lets `_ATTENTION_NOTIFY`, which is called from more than one context (`M600`, klipper-vs-146's `SCREWS_TILT_CALCULATE`, and klipper-vs-146's filament-sensor `runout_gcode`), say something different each time despite sharing one override. `_PRINT_START_NOTIFY` is called three times from `PRINT_START`, each with a different message: once at the very top (before homing/heating begin, reporting the target hotend/bed temps), once mid-sequence right before `CHECK_BED_LEVEL` (`MSG="🔍 Bed level check"` — nothing to report, just staying on blue since a level check isn't heating or a problem), and once right before `SQUIGGLY_PURGE` (`MSG="🚀 Printer goes brr"`, after homing/heat-soak/leveling all finish, just before purging and the sliced print body run) — this last call exists because `_HEAT_SOAK_NOTIFY` (orange) runs in between (both for the chamber soak inside `HEAT_SOAK` and for `PRINT_START`'s own bed-heat/hotend-heat steps) and would otherwise leave the LED on orange for the rest of the print; re-calling `_PRINT_START_NOTIFY` restores blue right as printing actually begins. `_HEAT_SOAK_NOTIFY` is likewise called three times total: from `PRINT_START` directly for `MSG="🔥 Bed: {target_bed}c"` and `MSG="🎯 Hotend: {target_extruder}c"`, and from `HEAT_SOAK` itself for the chamber-soak wait — all three reuse the same orange "heating" light rather than needing distinct colors per heat source. `_RESUME_NOTIFY` is the one exception: `mainsail.cfg`'s `user_resume_macro` hook invokes it bare, with no way to pass a param, so its override states a static `MSG="▶️ Print resumed."` directly rather than forwarding one. Every `*_NOTIFY` message leads with an emoji for quick at-a-glance scanning in the console/Telegram/LCD — this is purely cosmetic text content, not a change to the LED-color/Telegram-routing rules described above. `HEAT_SOAK`'s "no chamber target set, skipping" branch goes through `_HEAT_SOAK_SKIPPED_NOTIFY` (blue, since nothing is actually heating) rather than a bare `RESPOND`, so even the skip case reaches Telegram/LCD like every other step. This replaces what used to be ad hoc, easy-to-forget `RESPOND PREFIX=tgnotify` lines duplicated next to individual `*_NOTIFY` calls (`PRINT_END`, `SCREWS_TILT_CALCULATE`, `M600`) — those are gone now that the message travels with the LED call itself.
+### Macro overrides and `rename_existing`
 
-  New status points should follow this same split: add a public `_NOTIFY` macro with a shared no-op default, and let printers with a light override it — by plainly redefining the same-named macro, **not** `rename_existing` — to call `_LED_SET NAME=... LED=... MSG=...` (forwarding the caller's `MSG` param, or a static one if the call site can't pass params — see above; adding a new color preset is a one-line dict entry in `_LED_COLOR`, shared by every printer) — never call `SET_LED` or `_LED_COLOR` directly from a public macro.
+- Override a shared macro by **redefining it** — same `[gcode_macro X]` section name, no `rename_existing`.
+- Why this works: Klipper's config loader merges same-named sections across every included file into one final section.
+  - `configfile.py` builds the parser with `strict=False` so overrides "apply linearly as they do within a single file".
+  - A later block's `gcode:`/`description:` overwrite the earlier block's — exactly the full-replacement behavior overrides want.
+- `rename_existing` is only safe when the name being renamed is a Klipper **built-in** registered by an extras module.
+  - Examples: `PAUSE`/`RESUME`/`CANCEL_PRINT`/`SET_PRINT_STATS_INFO` (`[pause_resume]`), `SCREWS_TILT_CALCULATE` (`[screws_tilt_adjust]`), `BED_MESH_CALIBRATE` (`[bed_mesh]`).
+  - Built-ins are registered before any `[gcode_macro]` merging, so there's a real separate registration for the override to find at `klippy:connect`.
+  - Two `[gcode_macro SAME_NAME]` blocks never produce two chainable objects — they collapse into one merged section.
+- Never add a same-named `printer.cfg` override of `PAUSE`/`RESUME`/`CANCEL_PRINT`; use the `_CLIENT_VARIABLE` hooks instead.
+  - History: a `[gcode_macro RESUME]` override (to reset the LED on resume) collided with `mainsail.cfg`'s real `RESUME` and silently discarded its resume logic in the merge.
+  - Not a crash — a silent regression, only caught on a klipper-v0-4432 redeploy (the first time that config was actually parsed by Klipper).
+- Re-check `printer["gcode_macro X"].some_variable` lookups whenever the macro being read from changes — a missing variable silently resolves to `Undefined|float` → `0.0`.
 
-  `LOAD_FILAMENT`/`UNLOAD_FILAMENT` use a third, distinct sharing pattern — neither the no-op-default delegation above nor the vendored-file approach, since here the actual _logic_ (wait for temp, feed/purge, retract) is genuinely identical between printers and only the _numbers_ (distances, speeds) are hardware-specific. `filament.cfg` holds single, plain, shared definitions of both — not per-printer wrappers, and not split into a private underscore-prefixed engine plus a public caller (that split existed briefly during the `_CLIENT_VARIABLE` migration but was collapsed once nothing outside `filament.cfg` still called the underscore-prefixed macros directly with fully explicit params; re-introduce it only if some future caller genuinely needs to bypass `_CLIENT_VARIABLE` entirely). Both macros read their printer-specific numbers straight off `_CLIENT_VARIABLE`: `filament_load_length`/`filament_load_speed`/`filament_prime_length`/`filament_prime_speed` for loading, `filament_unload_purge_length`/`filament_unload_purge_speed`/`filament_unload_retract_length`/`filament_unload_retract_speed` for unloading — the same optional, falls-back-if-unset way every other `client.*` lookup in `mainsail.cfg` already works, so a printer that forgets to set one just gets `Undefined|float` → `0.0` (same footgun as the `RETRACT_AFTER` story below — worth double-checking after any refactor). Every one of those also stays overridable per-call, the same params the old private engine took: `LOAD_FILAMENT` takes `EXTRUDER`/`E` (feed length)/`LOAD_SPEED`/`PRIME_LENGTH`/`PRIME_SPEED`/`RETRACT_AFTER`/`RETRACT_SPEED`/`MAX_CHUNK`, `UNLOAD_FILAMENT` takes `EXTRUDER`/`E` (retract length)/`PURGE_LENGTH`/`PURGE_SPEED`/`RETRACT_SPEED` — `E=` was previously vs-146-only (as `LENGTH=`/`RETRACT_LENGTH=` on the old private engine) and is now available on both printers as a side effect of unifying (klipper-v0-4432 just never has a caller pass it). `LOAD_FILAMENT` chunks the feed length into however many equal moves are needed to stay at or under this printer's own `[extruder]` `max_extrude_only_distance` (read live via `printer.configfile.settings.extruder.max_extrude_only_distance` — no safety margin needed, Klipper's own check in `kinematics/extruder.py` is strictly-greater-than, so a move exactly at the configured limit is accepted) — that's a Klipper hard limit per single extrude-only move, not something either printer's `_CLIENT_VARIABLE` should have to know about or compute; `MAX_CHUNK` is exposed only as an override if ever needed. klipper-vs-146 sets `filament_load_length: 499.5` (chunked automatically into several sub-100mm moves), klipper-v0-4432 sets `filament_load_length: 30.0` (one move); neither printer's `_CLIENT_VARIABLE` thinks about chunking at all. `RETRACT_AFTER`/`RETRACT_SPEED` are the values with a real default beyond `_CLIENT_VARIABLE`'s own filament_* fields: `mainsail.cfg`'s own `_CLIENT_VARIABLE.retract`/`speed_retract` (the same fast retract `PAUSE` does when parking), so pause→load→resume ends at the same net E as a plain pause→resume on **both** printers automatically — pass `RETRACT_AFTER=0` to disable. `RESUME`'s `_CLIENT_EXTRUDE` then un-retracts `unretract`; any `unretract > retract` difference is a deliberate re-prime applied on every resume to replace what oozed during the pause (klipper-vs-146: `retract: 3.0`/`unretract: 3.5`; klipper-v0-4432: 4.0/4.0). This used to default to `unretract` at the slow `load_speed`, which on vs-146 (1.0mm default, after a 65mm prime) left the nozzle pressurized and oozing heavily between `LOAD_FILAMENT` and `RESUME`. Wiping on the brush during `RESUME` was rejected: on corexz the X gantry descends with the nozzle and can hit a tall print, and wiping throws away plastic the resumed lines need. (This used to be vs-146-only, reading a `PAUSE.extrude` variable that only existed on the old `client_macros.cfg`'s `PAUSE` — after the `mainsail.cfg` switch that lookup silently resolved to `Undefined|float` → `0.0`, quietly dropping the retract. Caught during a later review, not a redeploy — a reminder that `printer["gcode_macro X"].some_variable` lookups need re-checking whenever the macro being read from changes.) This is the pattern to reach for when unifying a macro whose _logic_ is identical but whose _numbers_ are physical/hardware-specific: put the numbers in each printer's own `_CLIENT_VARIABLE` block rather than a per-printer wrapper macro or a private engine macro, and don't try to invent a "reasonable universal default" inside the shared macro — require the caller's `_CLIENT_VARIABLE` to state it. `LOAD_FILAMENT`/`UNLOAD_FILAMENT` set `M83` (relative extrude) and deliberately do **not** switch back to `M82` on exit — see the "Relative vs. absolute extrude" note below for why that's the actually-correct choice here, not an oversight. Both macros also disable the configured `runout_sensor` (the same `_CLIENT_VARIABLE` field `mainsail.cfg` already reads for its RESUME gate) for the span of their own extrude/retract moves and re-enable it right after — added after klipper-vs-146's `filament_motion_sensor` (an encoder-based BTT smart sensor) was observed occasionally missing a pulse near the end of a `LOAD_FILAMENT` call and firing its `runout_gcode` mid-load; since the caller is deliberately feeding or removing filament by hand during these two macros, the sensor has nothing genuine to detect in that window anyway. (vs-146's `[filament_motion_sensor filament_sensor]` sets `pause_on_runout: True` and its own `runout_gcode` no longer calls `M600` — it calls `_ATTENTION_NOTIFY` then `_LOAD_FILAMENT_PROMPT` directly, leaning on Klipper's built-in pause-on-runout instead of a hand-rolled `M600`/`CHANGE_FILAMENT`/`UNLOAD_FILAMENT` chain, so a real runout no longer auto-attempts an unload — but a spurious fire there is still an unwanted pause-and-prompt interruption, so this fix stays relevant regardless of what `runout_gcode` does on a real trigger.) This is a different scope than the vs-146-only `client_macros.cfg` `SET_FILAMENT_SENSOR` wrapping that used to exist around `PAUSE`/`RESUME`/`CANCEL_PRINT` and was intentionally dropped when switching to `mainsail.cfg` (see above) — that predecessor never touched `LOAD_FILAMENT`/`UNLOAD_FILAMENT`, so this is new behavior, not a restoration of it. A printer with no `runout_sensor` set in `_CLIENT_VARIABLE` just skips the `SET_FILAMENT_SENSOR` calls, same fallback pattern as every other `client.*` lookup. The `ENABLE=1` re-enable is preceded by its own `M400` — without it, the sensor still false-triggered right after a load, because `SET_FILAMENT_SENSOR` is a plain host command that runs the instant the gcode interpreter reaches its line, not when the toolhead physically gets there; the preceding `G1` retract only gets _queued_, so `ENABLE=1` was re-arming the runout check while that last move — the exact tail-end stretch the encoder already struggles with — was often still physically in flight. `M400` blocks until the whole move queue actually drains, so re-enabling only happens once the physical motion is genuinely done. (Traced by reading `~/klipper/klippy/extras/filament_motion_sensor.py`/`filament_switch_sensor.py` directly off the vs-146 host — its `EncoderSensor` polls a 0.25s timer comparing live extruder position, via `find_past_position`/real print time, against "position at the last real encoder pulse + `detection_length`," gated only by `idle_timeout` state, not by `sensor_enabled` at all; only the resulting `runout_gcode` _dispatch_ is gated by `sensor_enabled`, which is why the disable/enable pair works at all once the timing race is closed.)
+### `mainsail.cfg` (vendored)
 
-  `filament.cfg` also holds a fully shared `M600` (plain, single definition — not per-printer, not delegated, since by the time it was extracted every piece it calls was already safe on both printers): `PAUSE` (parks the toolhead first, from `mainsail.cfg`) → `UNLOAD_FILAMENT {rawparams}` (the shared macro described above, forwarding any `E=`/`EXTRUDER=` the caller passed) → `_ATTENTION_NOTIFY` → a `tgnotify`/UI resume prompt. klipper-v0-4432 gets `M600` for free through its existing `[include macros/filament.cfg]` — it never had one before. The old klipper-vs-146-only version used bare `G91` to make a retract move relative, which — since it never issued a matching `G90` afterward — left the printer in relative XYZ mode too, not just relative E; routing through `UNLOAD_FILAMENT` (which properly scopes relative mode to just the extruder via `M83` — see the "Relative vs. absolute extrude" note above — rather than touching X/Y/Z mode at all) fixed that as a side effect of unifying. A macro like this — no printer-specific data left once its dependencies are all shared — is a sign it should move to a single plain shared definition rather than being force-fit into the no-op-delegation or engine-plus-wrapper patterns above.
+- The Alex Zellner `_CLIENT_VARIABLE`-based client macro pack: runout-sensor awareness, idle-timeout restore, temp restore, configurable park/retract, pause-at-layer.
+- Both printers use it for `PAUSE`/`RESUME`/`CANCEL_PRINT` rather than hand-rolling their own.
+  - Its `RESUME`/`PAUSE`/`CANCEL_PRINT` chain from the `[pause_resume]` built-ins via `rename_existing: RESUME_BASE` etc.
+  - It's UI-agnostic — klipper-vs-146 still uses Fluidd as its web UI.
+- **Do not hand-edit it.** It stays a clean copy of upstream.
+  - Upstream: [mainsail-crew/mainsail-config](https://github.com/mainsail-crew/mainsail-config)'s `client.cfg`.
+  - Upstream renamed it from `mainsail.cfg` in 2023; this repo keeps the old filename since both printers' includes/docs reference it.
+  - Confirmed byte-identical to upstream as of the `_CLIENT_LINEAR_MOVE` addition (2024-11-24).
+- Re-syncing: re-copying the file wholesale from upstream is safe.
+  - This copy has no `[exclude_object]` section (an earlier local copy briefly had one); each printer's `printer.cfg` has its own explicit `[exclude_object]` instead.
+- Its extension point is a fully-commented-out `[gcode_macro _CLIENT_VARIABLE]` template — see below.
 
-  `filament.cfg` also defines `_TIP_SHAPING`, a private helper adapted from [EricZimmerman/Voron02](https://github.com/EricZimmerman/Voron02/blob/PreKlippain/macros/helpers/filament_swap.cfg)'s macro of the same name: it pulses the extruder in and out a few times (2mm/3mm/4mm, each pulse a matched extrude-then-retract so it nets to zero displacement) with pressure advance temporarily zeroed and restored afterward, so a following retract pulls the filament back to a clean point instead of leaving a blob. Its only caller is `UNLOAD_FILAMENT`, after its own `M109` and any purge, right before its final retract — the same unload-only use upstream has. Net-zero E does **not** mean net-zero plastic: each forward stroke pushes real molten plastic out of the nozzle that the matching retract can't pull back, which is harmless right before the filament is pulled out entirely but is visible extrusion anywhere the filament stays loaded. `PRINT_END` called it once too and was dropped for exactly that reason (on klipper-vs-146, with only `PARK`'s 1mm default retract ahead of it, every pulse extruded past the nozzle). `UNLOAD_FILAMENT` already guarantees the hotend is at temp, so unlike upstream's version it needs no `_LOW_TEMP_CHECK`-equivalent guard; it's also already in `M83` (this repo's standing extrude-mode convention — see "Relative vs. absolute extrude" below), so unlike upstream it needs no `M82`/`G92 E0` absolute-mode anchor either — plain relative pulses reach the same net-zero motion. The pulse lengths (2/3/4mm) are a generic technique, not a hardware-specific measurement, so unlike `filament_load_length` etc. they live as literals in the shared macro rather than in either printer's `_CLIENT_VARIABLE`.
+### `_CLIENT_VARIABLE`
 
-  `park.cfg` holds a single public `PARK` macro, a thin wrapper around `mainsail.cfg`'s own private `_TOOLHEAD_PARK_PAUSE_CANCEL` (the engine `PAUSE`/`CANCEL_PRINT` already call internally) — `PARK` just forwards `{rawparams}` to it, so it's the same guarded-retract-then-Z-hop-then-move-to-park-position behavior, configured the same way (`_CLIENT_VARIABLE`'s `use_custom_pos`/`custom_park_x`/`custom_park_y`/`custom_park_dz`, `retract`/`speed_retract`, `speed_hop`/`speed_move`), accepting the same one-off `X=`/`Y=`/`Z_MIN=` overrides. This exists so any macro that needs to park — not just `PAUSE`/`CANCEL_PRINT` internally — has one public name to call rather than reaching into `mainsail.cfg`'s underscore-prefixed internals directly. Neither printer's `_CLIENT_VARIABLE` sets `custom_park_x`/`custom_park_y`, so `PARK` (like `PAUSE`) currently parks at the generic corner default (`axis_maximum - 5` on both X and Y, since neither printer is delta/polar/rotary_delta/winch kinematics) — set those two variables per-printer if a different spot is ever wanted, and it'll apply to `PAUSE`/`CANCEL_PRINT`/`PARK` together, since they all share this one engine.
+- Each printer's own `client_variables.cfg` defines a **partial** `_CLIENT_VARIABLE` — only the variables it needs, not the full template.
+  - Every other `client.*` lookup in `mainsail.cfg` falls back gracefully via `|default(...)` when unset.
+  - Don't copy the rest of the template in without a reason; it'd silently change working `PAUSE`/`CANCEL_PRINT`/park defaults.
+- Both printers set `user_resume_macro: "_RESUME_NOTIFY"` and `user_cancel_macro: "_CANCEL_NOTIFY"`.
+- Both set `runout_sensor`, which makes `RESUME` abort if no filament is detected:
+  - klipper-v0-4432: `"filament_switch_sensor Filament_Runout_Sensor"`
+  - klipper-vs-146: `"filament_motion_sensor filament_sensor"`
+  - This replaced vs-146's old manual `SET_FILAMENT_SENSOR` enable/disable around pause/resume/cancel, which had no `mainsail.cfg` equivalent and was dropped rather than replicated.
+- Both also set the `filament_*` load/unload numbers (see [Filament](#filament-filamentcfg)) and `retract`/`unretract`:
+  - klipper-vs-146: `retract: 3.0` / `unretract: 3.5`
+  - klipper-v0-4432: `retract: 4.0` / `unretract: 4.0`
+  - Any `unretract > retract` difference is a deliberate re-prime on every resume to replace what oozed during the pause.
 
-  `PRINT_END` (`print_end.cfg`) calls `PARK` first, before anything else, so the toolhead moves fully off the model (guarded retract, Z-hop, then the far-corner move — see `park.cfg` above) while the hotend is still hot, and any ooze while it cools drops at the parking corner instead of on the just-finished print. After `PARK`, `PRINT_END` does its own final retract (`G92 E0` / `G1 E-6`) — on top of whatever `PARK`'s own guarded retract already did, which is fine, the two aren't meant to substitute for each other, and the next `PRINT_START`'s `SQUIGGLY_PURGE` re-primes either way — then `TURN_OFF_HEATERS`/`M107`/`M400`, then a trailing `G90` for a known-absolute exit state (normally redundant, since `PARK` leaves the mode it found — G90 for virtually every real print — but cheap insurance if a caller ever reaches `PRINT_END` mid-`G91`). It deliberately does **not** call `_TIP_SHAPING` (see above). `PARK`'s call here is what moved print-end parking to the same corner `PAUSE`/`CANCEL_PRINT` already use, replacing `PRINT_END`'s old hardcoded `max_x/2, max_y-10` center-back move and its own separate small hot wipe move — both dropped as redundant once `PARK`'s own move-away covers the same "get off the part before it cools" need.
+### `squiggly_purge.cfg` (vendored)
 
-- Each printer's own `printer.cfg`, `moonraker.conf`, `telegram.conf` follow the same per-file conventions described below.
-- `scripts/upgrade-klipper-<printer>.sh` — run on that printer's host to pull `~/klipper` and rebuild/reflash all of its Klipper MCUs (README's "Upgrading Klipper firmware" runbooks, automated). The generic flow (preflight, refuse-if-printing, ff-only pull, always-restore `.config` on exit, start + version-check) lives in the sourced `scripts/lib/upgrade-klipper.sh`; each printer's script only declares its targets via `DEFAULT_CONFIG`/`MCUS` and `preflight_targets`/`flash_targets` hooks. Their serial paths/CAN UUIDs/MCU names are hardcoded copies of `printer.cfg`'s `[mcu*]` sections; keep them in sync if a board is replaced.
+- `PRINT_START`'s final step. Upstream: [mjonuschat/voron-mods](https://github.com/mjonuschat/voron-mods/tree/main/Squiggly%20Purge).
+- **Do not hand-edit it** — keep byte-identical; re-copy wholesale from upstream instead.
+- Needs no per-printer extension point: it reads everything hardware-specific from `printer.configfile`/`printer.toolhead`/`printer.exclude_object`.
+  - Nozzle/filament diameter, `max_extrude_cross_section`, bed bounds, live `[exclude_object]` polygons for adaptive positioning.
+- Both printers call it identically: `SQUIGGLY_PURGE PURGE_LENGTH=50` (it replaced a param-less `PRIME_LINE`).
+- Both printers set `max_extrude_cross_section: 1.1` (mm²) explicitly, sized to clear that purge without the macro's self-correction.
+  - The stock `LINE_HEIGHT=0.6` needs roughly 1.05 mm² for a 50mm purge at default squiggle geometry, so no `action_respond_info` correction fires.
+  - Replaced vs-146's implicit 0.64 mm² Klipper default and v0-4432's earlier 0.8 mm².
+  - If `PURGE_LENGTH`, `LINE_HEIGHT`, or `STEPS`/`PERIODS`/`AMPLITUDE`/`PERIOD_LENGTH` on the `print_start.cfg` call ever change, re-check that `max_extrude_cross_section` still covers it.
 
-See `README.md` for the full directory tree and the deployment runbook (each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`).
+### `PRINT_START`
+
+Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
+
+- `_PRINT_START_NOTIFY` at the very top (see [Status notifications](#status-notifications)).
+- Heats the bed itself with `M190` (generic — both printers have `[heater_bed]`).
+- `BED_FANS BED=<target>` right after `M190` settles.
+  - `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS`.
+  - vs-146 overrides it — see [klipper-vs-146 fans](#klipper-vs-146-fans-big-p4ppa-hat).
+- `HEAT_SOAK` — see below.
+- `G28 Z` re-home after the soak, since frame thermal expansion can drift the cold Z reference taken earlier in the macro.
+  - Safe on both: vs-146's `[safe_z_home]` moves to its safe XY point first; v0-4432's `[homing_override]` treats `G28 Z` as Z-only.
+- `CHECK_BED_LEVEL`
+  - klipper-vs-146: heats nozzle to 150C, homes Z via Cartographer's `CARTOGRAPHER_TOUCH_HOME` for a real Z0, then calibrates a fresh adaptive mesh.
+  - klipper-v0-4432: no-op (no probe).
+  - There is no separate `LOAD_BED_MESH` hook. A printer that wants a saved profile should load it inside its own `CHECK_BED_LEVEL` rather than adding a second hook.
+- `CLEAN_NOZZLE_PARK` → `M109` → `CLEAN_NOZZLE` for the final hotend heat (see below).
+- `SQUIGGLY_PURGE PURGE_LENGTH=50`.
+- Adding a new printer-specific step: call a same-named macro unconditionally and give every printer an implementation, even if a no-op.
+
+### `HEAT_SOAK`
+
+- Two phases on the shared `temperature_sensor chamber_temp`; skipped if no target is set above 0.
+  1. Uncapped wait for `CHAMBER_MINIMAL` (or `CHAMBER` if unset) — a minimum the chamber can't reach will hang the print.
+  2. Fans still on, `TEMPERATURE_WAIT_WITH_TIMEOUT` toward `CHAMBER` for at most `PRINT_START`'s `CHAMBER_SOAK` seconds (default 1800 = 30 min).
+- OrcaSlicer enforces `chamber_temperature >= chamber_minimal_temperature`, so `CHAMBER` is the soak goal and `CHAMBER_MINIMAL` the hard floor.
+
+### Nozzle cleaning (`CLEAN_NOZZLE_PARK` / `CLEAN_NOZZLE`)
+
+- `CLEAN_NOZZLE_PARK` runs right before `M109`: waits over a purge bucket so heat-up ooze drops there.
+- `CLEAN_NOZZLE` runs right after: scrubs on a brush before `SQUIGGLY_PURGE`.
+- Both are no-op defaults in `print_start.cfg`; klipper-vs-146 overrides both in its own `clean_nozzle.cfg`.
+  - Hardware: Enderwire silicone brush + drop hole on the bed's front-right corner ([printables 1143673](https://www.printables.com/model/1143673)).
+  - vs-146's `CHECK_BED_LEVEL` also calls the pair around its own `M109 S150` so the nozzle is clean for `CARTOGRAPHER_TOUCH_HOME`.
+- All brush/bucket geometry and wipe tuning lives as `variable_*` on `CLEAN_NOZZLE_PARK` alone; `CLEAN_NOZZLE` reads it via `printer["gcode_macro CLEAN_NOZZLE_PARK"]`.
+- Both refuse to run unhomed and wrap themselves in `SAVE/RESTORE_GCODE_STATE`.
+- Both always raise to `travel_z` before any XY travel.
+  - The brush top is at bed level, so scrub depth is below Z0.
+  - The bracket sits below the bed, so the scrub drags straight from the brush into the hole at brush depth.
+- `CLEAN_NOZZLE` drops accel to `wipe_accel` for the scrub and restores it afterward (gcode state doesn't cover accel).
+- The macro is this repo's own, drawing on the Voron Decontaminator, Klippain's `CLEAN_NOZZLE`, and the brush author's park-while-heating idea.
+
+### Status notifications
+
+Status (LED + console + Telegram + LCD) uses a public/private split: public `*_NOTIFY` macros named for what they indicate, all funnelling into one private `_LED_SET`.
+
+#### Public `*_NOTIFY` macros
+
+- All seven no-op defaults live together in `notify.cfg`, regardless of caller — this is the one place to see the full set. Each is safe to call from any printer.
+- `_PRINT_START_NOTIFY` — blue. Normal start sequence, nothing to report.
+  - Called three times from `PRINT_START`:
+    - At the very top, before homing/heating: `MSG="🖨️ Print started! Hotend: {target_extruder}c, Bed: {target_bed}c"`.
+    - Right before `CHECK_BED_LEVEL`: `MSG="🔍 Bed level check"`.
+    - Right before `SQUIGGLY_PURGE`: `MSG="🚀 Printer goes brr"` — restores blue, since the orange heating calls in between would otherwise leave it orange for the whole print.
+  - klipper-vs-146's `SCREWS_TILT_CALCULATE` also calls it at the start of every probe pass, so lights go solid blue while probing instead of freezing a leftover attention pulse mid-fade.
+- `_HEAT_SOAK_NOTIFY` — orange. Anywhere the printer is actively heating something, despite the name.
+  - From `PRINT_START`: `MSG="🔥 Bed: {target_bed}c"` and `MSG="🎯 Hotend: {target_extruder}c"`.
+  - From `HEAT_SOAK` for the chamber-soak wait.
+- `_HEAT_SOAK_SKIPPED_NOTIFY` — blue. Called from `HEAT_SOAK` instead of `_HEAT_SOAK_NOTIFY` when no chamber target is set.
+  - A distinct macro because an override's color is fixed per macro, not passable by the caller.
+  - Routes the skip through notifications so it reaches Telegram/LCD like every other step, rather than a bare `RESPOND`.
+- `_PRINT_END_NOTIFY` — green. Called from `PRINT_END`.
+- `_ATTENTION_NOTIFY` — yellow, pulsing. Called from anything that pauses for manual user input:
+  - the shared `M600` (`MSG="⚠️ Filament Change (M600) needs your attention."`)
+  - klipper-vs-146's `SCREWS_TILT_CALCULATE`
+  - klipper-vs-146's `[filament_motion_sensor filament_sensor]` `runout_gcode`
+  - klipper-v0-4432 has no pause point of its own yet.
+- `_RESUME_NOTIFY` — solid blue. Called via `mainsail.cfg`'s `user_resume_macro` hook, not a same-named `RESUME` override.
+  - The hook invokes it bare (no params), so its override states a static `MSG="▶️ Print resumed."`.
+  - Being a solid color, it cancels any in-progress pulse, so resuming from an attention pause clears it immediately.
+- `_CANCEL_NOTIFY` — called via `mainsail.cfg`'s `user_cancel_macro` hook, the same way.
+
+#### Per-printer overrides
+
+- Both printers have a light and override all seven in their own `status_leds.cfg` by plain redefinition (no `rename_existing`).
+- Each override calls `_LED_SET NAME=<color> LED=<their light> MSG=...`, forwarding the caller's `MSG` (or a static one where the call site can't pass params).
+  - klipper-vs-146: `LED=enclosure` (RGB; the unused `WHITE` component is harmless to pass).
+  - klipper-v0-4432: `LED=bed_light` (RGBW).
+- Passing `LED=` as a param is what keeps `_LED_SET` a single shared macro instead of per-printer copies.
+- Forwarding `MSG` lets one override (e.g. `_ATTENTION_NOTIFY`) say something different for each caller.
+
+#### Color scheme
+
+Deliberately tight, same meaning on both printers:
+
+- `blue` — actively running (`_PRINT_START_NOTIFY`).
+- `orange` — heating/warming up, not a problem (`_HEAT_SOAK_NOTIFY`).
+- `yellow` pulsing — needs your attention (`_ATTENTION_NOTIFY`).
+- `green` — done (`_PRINT_END_NOTIFY`).
+- `red` — intentionally unused, reserved for a real fault. Don't repurpose it for heating or any other non-error state.
+- `off`/`white` — general-purpose presets in `_LED_COLOR`, not tied to a lifecycle indicator.
+
+#### `_LED_SET` and messaging
+
+- `_LED_SET` is the single private entry point (in `notify.cfg`; the leading underscore hides it from the web UI's macro panel).
+- It always cancels any in-progress pulse first, then sets a solid color via `_LED_COLOR`.
+  - `_LED_COLOR` is the lower-level macro holding the name→RGBW lookup and the `SET_LED` call.
+- With an optional `MSG`, it also emits:
+  - a plain `RESPOND` (console)
+  - a `RESPOND PREFIX=tgnotify` (Telegram, via moonraker-telegram-bot)
+  - an `M117` (LCD status line)
+- Because messaging lives in `_LED_SET`, it only fires where an override actually has a light; the no-op defaults say nothing.
+- This replaced ad hoc `RESPOND PREFIX=tgnotify` lines next to individual `*_NOTIFY` calls (`PRINT_END`, `SCREWS_TILT_CALCULATE`, `M600`).
+- Every message leads with an emoji for at-a-glance scanning (purely cosmetic).
+
+#### Pulse animation (`PULSE=1`)
+
+- `_LED_SET ... PULSE=1` (used by both printers' `_ATTENTION_NOTIFY`) gives a slow breathing fade instead of a solid color.
+- Gcode macros can't block for the life of a pause, so the animation lives in `[delayed_gcode _LED_PULSE]`.
+  - Self-rescheduling via `UPDATE_DELAYED_GCODE`, fires every 0.15s, `initial_duration: 0` (dormant until triggered).
+  - Ramps `_LED_COLOR`'s `BRIGHTNESS` between 0.2 and 1.0 over a 24-step triangle wave (~7s per breath), starting at full brightness and fading down.
+  - The 0.2 floor and bright start exist because a tick parked behind a long command (e.g. back-to-back `SCREWS_TILT_CALCULATE`) freezes the light wherever it was; a 0-floor pulse frozen near the bottom looked like the light had turned off.
+- State persists between ticks in `_LED_PULSE_STATE`, a `[gcode_macro]` used purely as variable storage (which LED, color, step/direction, `active` flag).
+  - Set via `SET_GCODE_VARIABLE`, read via `printer["gcode_macro _LED_PULSE_STATE"]` — `[delayed_gcode]` can't receive params.
+- The `[delayed_gcode]` body only calls `_LED_PULSE_TICK`, which does work only while `active` is set (`_LED_SET` sets 1 for a pulse, 0 for any solid color).
+- Why the `active` indirection — a race in Klipper's `delayed_gcode.py`:
+  - When the timer fires it sets `inside_timer`, renders its template **immediately**, then blocks on the gcode mutex.
+  - A long command like `SCREWS_TILT_CALCULATE` holds the mutex, so a tick is almost always parked behind it.
+  - While parked, `UPDATE_DELAYED_GCODE DURATION=0` only clears `repeat`; it doesn't cancel the timer.
+  - The parked tick then replayed its stale script (ending in a fresh `DURATION=0.15`) and pulsed forever over the new solid color.
+  - A `[gcode_macro]` renders at dispatch time, after the mutex is acquired, so `_LED_PULSE_TICK` sees the current `active` and declines to reschedule.
+
+#### Adding a status point
+
+- Add a public `_NOTIFY` macro with a no-op default in `notify.cfg`.
+- In each printer with a light, override it by plain redefinition (**not** `rename_existing`) to call `_LED_SET NAME=... LED=... MSG=...`.
+- A new color preset is a one-line dict entry in `_LED_COLOR`, shared by every printer.
+- Never call `SET_LED` or `_LED_COLOR` directly from a public macro.
+
+### Filament (`filament.cfg`)
+
+#### `LOAD_FILAMENT` / `UNLOAD_FILAMENT`
+
+- Single plain shared definitions — the "shared logic, per-printer numbers" pattern. Logic (wait for temp, feed/purge, retract) is identical; only distances/speeds differ.
+- Not split into a private underscore engine plus public caller.
+  - That split existed briefly during the `_CLIENT_VARIABLE` migration and was collapsed once nothing outside `filament.cfg` called the engine directly.
+  - Re-introduce it only if a future caller genuinely needs to bypass `_CLIENT_VARIABLE`.
+- Numbers come from `_CLIENT_VARIABLE`:
+  - Load: `filament_load_length`, `filament_load_speed`, `filament_prime_length`, `filament_prime_speed`.
+  - Unload: `filament_unload_purge_length`, `filament_unload_purge_speed`, `filament_unload_retract_length`, `filament_unload_retract_speed`.
+  - Footgun: a printer that forgets one gets `Undefined|float` → `0.0`. Double-check after any refactor.
+- Per-call overrides:
+  - `LOAD_FILAMENT`: `EXTRUDER`, `E` (feed length), `LOAD_SPEED`, `PRIME_LENGTH`, `PRIME_SPEED`, `RETRACT_AFTER`, `RETRACT_SPEED`, `MAX_CHUNK`.
+  - `UNLOAD_FILAMENT`: `EXTRUDER`, `E` (retract length), `PURGE_LENGTH`, `PURGE_SPEED`, `RETRACT_SPEED`.
+  - `E=` was once vs-146-only (`LENGTH=`/`RETRACT_LENGTH=` on the old engine); now available on both, though v0-4432 has no caller passing it.
+- `LOAD_FILAMENT` chunks the feed into equal moves at or under the printer's `[extruder]` `max_extrude_only_distance`.
+  - Read live via `printer.configfile.settings.extruder.max_extrude_only_distance`.
+  - No safety margin needed: Klipper's check in `kinematics/extruder.py` is strictly-greater-than.
+  - Neither printer's `_CLIENT_VARIABLE` thinks about chunking; `MAX_CHUNK` exists only as an override.
+  - klipper-vs-146: `filament_load_length: 499.5` (several sub-100mm moves). klipper-v0-4432: `filament_load_length: 30.0` (one move).
+- `RETRACT_AFTER`/`RETRACT_SPEED` default to `_CLIENT_VARIABLE`'s `retract`/`speed_retract` — the same fast retract `PAUSE` does when parking.
+  - So pause→load→resume ends at the same net E as plain pause→resume on both printers; `RESUME`'s `_CLIENT_EXTRUDE` then un-retracts `unretract`.
+  - Pass `RETRACT_AFTER=0` to disable.
+  - Previously defaulted to `unretract` at the slow `load_speed`; on vs-146 (1.0mm after a 65mm prime) that left the nozzle pressurized and oozing heavily before `RESUME`.
+  - Earlier still it was vs-146-only, reading `PAUSE.extrude` from the old `client_macros.cfg`; after the `mainsail.cfg` switch that silently became `0.0` and dropped the retract (caught in review, not a redeploy).
+- Wiping on the brush during `RESUME` was rejected.
+  - On corexz the X gantry descends with the nozzle and can hit a tall print.
+  - Wiping throws away plastic the resumed lines need.
+- Both set `M83` and deliberately do **not** switch back to `M82` on exit — see [Relative vs. absolute extrude](#relative-vs-absolute-extrude).
+
+#### Runout sensor around load/unload
+
+- Both macros disable the configured `runout_sensor` (the same `_CLIENT_VARIABLE` field `RESUME` reads) for their extrude/retract moves, then re-enable it.
+  - A printer with no `runout_sensor` set skips the `SET_FILAMENT_SENSOR` calls.
+- Why: vs-146's `filament_motion_sensor` (encoder-based BTT smart sensor) occasionally missed a pulse near the end of `LOAD_FILAMENT` and fired `runout_gcode` mid-load.
+  - The user is deliberately feeding/removing filament here, so there's nothing genuine to detect.
+- The `ENABLE=1` is preceded by its own `M400`.
+  - `SET_FILAMENT_SENSOR` runs the instant the interpreter reaches it, not when the toolhead gets there; the preceding `G1` is only queued.
+  - Without `M400`, it re-armed while the last move (the stretch the encoder struggles with) was still in flight, and still false-triggered.
+- Evidence (from `~/klipper/klippy/extras/filament_motion_sensor.py`/`filament_switch_sensor.py` on the vs-146 host):
+  - `EncoderSensor` polls a 0.25s timer comparing live extruder position (via `find_past_position`/real print time) against "position at last encoder pulse + `detection_length`".
+  - That check is gated only by `idle_timeout` state, not `sensor_enabled`; only the `runout_gcode` dispatch is gated by `sensor_enabled`.
+- This is new behavior, not a restoration of the old vs-146 `client_macros.cfg` `SET_FILAMENT_SENSOR` wrapping around `PAUSE`/`RESUME`/`CANCEL_PRINT` (which never touched load/unload).
+- vs-146's `[filament_motion_sensor filament_sensor]` uses `pause_on_runout: True`; its `runout_gcode` calls `_ATTENTION_NOTIFY` then `_LOAD_FILAMENT_PROMPT`.
+  - It no longer calls `M600`, so a real runout doesn't auto-unload. A spurious fire is still an unwanted pause-and-prompt, so the disable/enable fix stays relevant.
+
+#### `M600`
+
+- A single plain shared definition: `PAUSE` (parks first) → `UNLOAD_FILAMENT {rawparams}` (forwards `E=`/`EXTRUDER=`) → `_ATTENTION_NOTIFY` → a `tgnotify`/UI resume prompt.
+- klipper-v0-4432 gets it via its existing `[include macros/filament.cfg]` — it never had one before.
+- The old vs-146-only version used bare `G91` with no matching `G90`, leaving XYZ relative too; routing through `UNLOAD_FILAMENT`'s `M83` fixed that.
+
+#### `_TIP_SHAPING`
+
+- Private helper adapted from [EricZimmerman/Voron02](https://github.com/EricZimmerman/Voron02/blob/PreKlippain/macros/helpers/filament_swap.cfg)'s macro of the same name.
+- Pulses the extruder in and out (2/3/4mm, each a matched extrude-then-retract) with pressure advance zeroed and then restored, so the following retract leaves a clean tip instead of a blob.
+- Only caller: `UNLOAD_FILAMENT`, after its `M109` and any purge, right before the final retract (same as upstream).
+- Net-zero E is **not** net-zero plastic: each forward stroke pushes out molten plastic the retract can't pull back.
+  - Harmless right before the filament is pulled out; visible extrusion anywhere filament stays loaded.
+  - `PRINT_END` used to call it and was dropped for exactly this reason (on vs-146, with only `PARK`'s 1mm retract ahead of it, every pulse extruded).
+- Differences from upstream:
+  - No `_LOW_TEMP_CHECK` guard — `UNLOAD_FILAMENT` already guarantees temp.
+  - No `M82`/`G92 E0` anchor — already in `M83`, so plain relative pulses give the same net-zero motion.
+- Pulse lengths are generic technique, not hardware-specific, so they're literals in the macro rather than `_CLIENT_VARIABLE` fields.
+
+### `PARK` (`park.cfg`)
+
+- A thin public wrapper that forwards `{rawparams}` to `mainsail.cfg`'s private `_TOOLHEAD_PARK_PAUSE_CANCEL` (the engine `PAUSE`/`CANCEL_PRINT` use).
+- Exists so any macro can park via one public name instead of reaching into `mainsail.cfg`'s internals.
+- Behavior: guarded retract → Z-hop → move to park position. Accepts one-off `X=`/`Y=`/`Z_MIN=` overrides.
+- Configured via `_CLIENT_VARIABLE`: `use_custom_pos`, `custom_park_x`, `custom_park_y`, `custom_park_dz`, `retract`/`speed_retract`, `speed_hop`/`speed_move`.
+- Neither printer sets `custom_park_x`/`custom_park_y`, so it parks at the generic corner default (`axis_maximum - 5` on X and Y; neither printer is delta/polar/rotary_delta/winch).
+  - Setting them per-printer applies to `PAUSE`/`CANCEL_PRINT`/`PARK` together.
+
+### `PRINT_END` (`print_end.cfg`)
+
+- Shared by both printers — their needs (generic heater/fan shutdown, axis-max-based park) turned out identical.
+- Sequence:
+  1. `PARK` first, while the hotend is still hot, so ooze drops at the park corner rather than on the print.
+  2. Its own final retract (`G92 E0` / `G1 E-6`), on top of `PARK`'s guarded retract — they aren't substitutes, and the next `SQUIGGLY_PURGE` re-primes either way.
+  3. `TURN_OFF_HEATERS` / `BED_FANS BED=0` / `M107` / `M400`.
+  4. A trailing `G90` for a known-absolute exit state — normally redundant (`PARK` restores the mode it found), but cheap insurance if reached mid-`G91`.
+  5. `SET_GCODE_OFFSET Z=0`, `M84 X Y E`, `SET_SKEW CLEAR=1` (if `[skew_correction]` exists), then `_PRINT_END_NOTIFY`.
+- Deliberately does **not** call `_TIP_SHAPING`.
+- `PARK` replaced the old hardcoded `max_x/2, max_y-10` center-back move and a separate small hot wipe — both redundant once `PARK` gets off the part.
 
 ## Relative vs. absolute extrude
 
-Klipper tracks X/Y/Z absolute-vs-relative mode via `G90`/`G91` (`absolute_coord` in `gcode_move.py`), but the E axis has its own override: `M82`/`M83` set `allow_absolute_extrude`, and whenever that's `False` (i.e. `M83` was called), E is forced relative regardless of what `G90`/`G91` last set — `G90`/`G91` alone never touch E's mode once `M83` has been issued. Default state at klippy startup is absolute for both (`G90`-equivalent, `allow_absolute_extrude: True`).
-
-Both printers' slicer (OrcaSlicer, "use relative E distances" enabled for both) emits `M83` near the start of every print body and never switches back — so `M83` is each printer's actual standing convention for the vast majority of a print's runtime, not `M82`. Any macro that runs mid-print (filament load/unload, `M600`, etc.) should leave E in `M83` on exit rather than "restoring" it to `M82`, since `M82` would actually be the _unusual_ state to leave behind. This is why `_LOAD_FILAMENT`/`_UNLOAD_FILAMENT` (see above) deliberately end in `M83`, not `M82`.
-
-A mode change made _inside_ a macro that always runs nested between an active `PAUSE` and its eventual `RESUME` is self-healing regardless: Klipper's built-in `PAUSE`/`RESUME` (`pause_resume.py`) do `SAVE_GCODE_STATE`/`RESTORE_GCODE_STATE`, which snapshot and restore both `absolute_coord` and `allow_absolute_extrude`. This only helps if `RESUME` (not `CANCEL_PRINT`) is what eventually runs, and it's a safety net, not a reason to be sloppy about which mode a macro leaves things in on its own.
+- Klipper tracks X/Y/Z mode via `G90`/`G91` (`absolute_coord` in `gcode_move.py`).
+- E has its own override: `M82`/`M83` set `allow_absolute_extrude`.
+  - When it's `False` (after `M83`), E is relative regardless of `G90`/`G91`; `G90`/`G91` never touch E's mode once `M83` is issued.
+- Default at klippy startup is absolute for both (`G90`-equivalent, `allow_absolute_extrude: True`).
+- Both printers' OrcaSlicer profiles use relative E, emitting `M83` near the start of every print body and never switching back.
+  - So `M83` is the standing convention for most of a print's runtime, not `M82`.
+- Any macro that runs mid-print (filament load/unload, `M600`, etc.) should leave E in `M83` on exit rather than "restoring" `M82`.
+  - This is why `LOAD_FILAMENT`/`UNLOAD_FILAMENT` end in `M83`.
+- Safety net: Klipper's built-in `PAUSE`/`RESUME` (`pause_resume.py`) do `SAVE_GCODE_STATE`/`RESTORE_GCODE_STATE`, restoring both `absolute_coord` and `allow_absolute_extrude`.
+  - Only helps if `RESUME` (not `CANCEL_PRINT`) eventually runs — not a reason to be sloppy about the mode a macro leaves behind.
 
 ## Per-printer files
 
-- `printer.cfg` — main Klipper config: MCU pin mappings, steppers/TMC2209 drivers (klipper-vs-146 also uses `[autotune_tmc]` per stepper), bed mesh, probe, extruder/heater, input shaper, and the `[include]` block that pulls in the shared `macros/*.cfg` and then this printer's own macro files (below). Also contains the `SAVE_CONFIG` auto-generated block at the bottom (PID tunes, bed mesh calibration, probe/endstop offsets) — never hand-edit below the `#*# <---------------------- SAVE_CONFIG ---------------------->` marker; Klipper rewrites it. This block is independent per printer.
-- Printer-local macros live in their own files next to `printer.cfg`, grouped by topic rather than inline: `status_leds.cfg` (the seven `*_NOTIFY` overrides), `client_variables.cfg` (`_CLIENT_VARIABLE`), and on klipper-vs-146 also `bed_level.cfg` (`CHECK_BED_LEVEL`, `SCREWS_TILT_CALCULATE`/`_SCREWS_TILT_CHECK`, `G32`), `clean_nozzle.cfg`, and `bed_fan.cfg` (`BED_FANS`). Klipper merges same-named macros last-wins, so they're included in one block **after** every `macros/*.cfg` include. Keep that order, or a shared no-op default would silently replace the real override. New printer-specific macros go in one of these files (or a new topic file in that same block), not inline in `printer.cfg`. Macro-like gcode inside a hardware section, such as vs-146's `[filament_motion_sensor]` `runout_gcode`, stays with its section.
-- `ldo-upstream-printer.cfg` (klipper-v0-4432 only) — the original LDO/Voron installer's full printer template. **Not** referenced by any `[include]` in `printer.cfg` — `printer.cfg` was customized directly instead. Kept only as a reference to diff against upstream; don't assume it reflects live config.
-- `ldo-picobilical.cfg` (klipper-v0-4432 only) — pin mappings for the LDO Picobilical toolhead's onboard RP2040 (`[mcu umb]`), customized from [LDO's vendored template](https://github.com/MotorDynamicsLab/LDO-Picobilical). Its `[mcu rpi]`/`[adxl345]`/`[resonance_tester]` block is the one exception that has nothing to do with `umb`: the toolhead's onboard ADXL345 is wired via its own separate FFC cable straight to the Raspberry Pi's SPI/GPIO header (confirmed from LDO's schematics and wiring photos — it's not part of the 14-pin umbilical, and the `umb` RP2040 has no SPI pins routed to it at all), so it's configured as a Klipper host-MCU (`serial: /tmp/klipper_host_mcu`) like any standalone Raspberry-Pi-wired accelerometer, not as an `umb:`-pin device. Getting this running required real host setup beyond `printer.cfg` (not part of this repo's own history/state, so worth recording here): SPI enabled via `raspi-config` (needs a reboot for `/dev/spidev0.0` to appear), the user account added to the `tty` group (the host-MCU's `/tmp/klipper_host_mcu` is a pty owned `root:tty`, and Klipper otherwise fails to connect to it), `~/klipper/scripts/klipper-mcu.service` installed and enabled, and `~/klipper/.config` temporarily switched to `CONFIG_MACH_LINUX=y` for one `make flash` (which builds/installs `/usr/local/bin/klipper_mcu` and restarts the service on its own) before being restored back to the RP2040 toolhead build so a future toolhead firmware rebuild doesn't silently target the wrong architecture. Per LDO's own guide, the FFC cable should stay unplugged except when actually running `ACCELEROMETER_QUERY`/`SHAPER_CALIBRATE` — this is safe because Klipper's `adxl345` module only probes the chip's device ID when a measurement starts, not at `klippy` connect, so the printer reaches "ready" and prints normally either way.
-- `moonraker.conf` — Moonraker API server config: CORS/trusted clients, update_manager entries (moonraker-telegram-bot on both; `klipper_tmc_autotune` on both as well). Neither printer's `[server]` sets `ssl_port`, but that setting was never actually what mattered: Moonraker enables its own HTTPS server purely based on whether cert/key files exist at its auto-discovered data-path default (`~/printer_data/certs/moonraker.{cert,key}`, a directory outside this repo) — `ssl_port` only picks which port to use if HTTPS is enabled, and defaults to `7130` even when entirely absent from the config. Moonraker's API/websocket are reverse-proxied through nginx instead (see `ansible/README.md`'s `webcam_https_proxy`/`firewall` roles), which also wants to listen on `7130` for the same certs — so both hosts' certs have been manually renamed, once, from `moonraker.{cert,key}` to `nginx.{cert,key}` (a one-time on-host step, not something this repo or ansible performs) specifically so Moonraker finds nothing at its auto-discovered path and never starts its own HTTPS server at all, leaving nginx free to bind `7130` without a conflict.
-- klipper-vs-146's Pi-side fans hang off a Big P4ppa v1 HAT ([gcormier/bigp4ppa](https://github.com/gcormier/bigp4ppa)): five AO3402 low-side MOSFET outputs hardwired, left to right, to gpio12/13/18/26/23 (v1 silkscreen mislabels outputs 4 and 5 as "GPIO19" — no output is on gpio19), each with its own 5V/12V/24V jumper. `[temperature_fan bed_fan]` (out 1, gpio12 / PWM0 — two 2-wire blowers in parallel on the Y carriage, blowing on the bed heater to warm the chamber; replaced the nevermore. Following Ellis's bed-fan strategy — off while the bed heats, on once it's at target — but as a `watermark` `temperature_fan` reading the bed via `temperature_combined` rather than Ellis's `rename_existing` `M190`/`M140` overrides plus a `delayed_gcode` poll loop, because a delayed_gcode can't run while `PRINT_START` holds the gcode mutex, which spans the whole soak; sensor callbacks aren't mutex-bound. `BED_FANS` (`bed_fan.cfg`) sets the watermark `band` C below the bed target, so the fans turn on at target and cut out below target−2C. With the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater` (it requires 2C/60s gain until within 5C of target); the watermark keeps the bed out of that window by construction, and `BED_FANS` leaves targets under `threshold` (PLA/PETG) fan-free) and `[heater_fan case]` (out 2, gpio13 / PWM1, a 24V 2-wire fan) use the Pi 4's two hardware PWM channels (`rpi:pwmchip0/pwm0` / `pwm1`) because the host MCU's jittery software PWM made them hum; the always-on `raspberry_pi_fan` (`[static_digital_output]`) moved to out 3 (gpio18, which can't be hardware PWM anyway since it shares PWM0 with gpio12). Both run at 100Hz (`cycle_time: 0.01`): at 25kHz the flyback diode averages the PWM into a DC-like voltage, so a 24V fan at 25% sees ~6V and stalls, and partial duty also made an audible whine. This needs `dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4` in `/boot/firmware/config.txt` (ansible `boot_config_overlays` host var) plus both channels in `hard_pwm_exports` — without them, Klipper fails to start. The base role's `lineinfile` only appends overlays, so the earlier single-channel `dtoverlay=pwm,pin=12,func=4` line had to be removed from the host by hand once (two PWM overlays conflict); do the same for any future overlay change.
-- `telegram.conf` — moonraker-telegram-bot config; points at a `secrets.conf` (gitignored, lives on the printer host) for credentials.
+### Common to both printers
+
+- `printer.cfg` — main Klipper config: MCU pin mappings, steppers/TMC2209 drivers, bed mesh, probe, extruder/heater, input shaper, and the `[include]` block.
+  - klipper-vs-146 also uses `[autotune_tmc]` per stepper.
+  - The bottom `SAVE_CONFIG` block (PID tunes, bed mesh, probe/endstop offsets) is Klipper-generated and independent per printer — never hand-edit below `#*# <---------------------- SAVE_CONFIG ---------------------->`.
+- Printer-local macros live in topic files next to `printer.cfg`, not inline:
+  - `status_leds.cfg` — the seven `*_NOTIFY` overrides.
+  - `client_variables.cfg` — `_CLIENT_VARIABLE`.
+  - klipper-vs-146 only: `bed_level.cfg` (`CHECK_BED_LEVEL`, `SCREWS_TILT_CALCULATE`/`_SCREWS_TILT_CHECK`, `G32`), `clean_nozzle.cfg`, `bed_fan.cfg` (`BED_FANS`).
+- These are included in one block **after** every `macros/*.cfg` include. Keep that order — Klipper merges same-named macros last-wins, so otherwise a shared no-op default silently replaces the real override.
+- New printer-specific macros go in one of these files (or a new topic file in that block), not inline in `printer.cfg`.
+- Macro-like gcode inside a hardware section (e.g. vs-146's `[filament_motion_sensor]` `runout_gcode`) stays with its section.
+- `moonraker.conf` — CORS/trusted clients, update_manager entries (moonraker-telegram-bot and `klipper_tmc_autotune` on both).
+- `telegram.conf` — moonraker-telegram-bot config; points at a gitignored `secrets.conf` on the printer host for credentials.
+
+### Moonraker HTTPS / nginx
+
+- Neither printer's `[server]` sets `ssl_port`, but that was never what mattered.
+- Moonraker enables its own HTTPS purely if cert/key files exist at `~/printer_data/certs/moonraker.{cert,key}` (outside this repo).
+  - `ssl_port` only picks the port, defaulting to `7130` even when absent.
+- Moonraker's API/websocket are reverse-proxied through nginx instead (see `ansible/README.md`'s `webcam_https_proxy`/`firewall` roles), which also wants `7130`.
+- So both hosts' certs were manually renamed once from `moonraker.{cert,key}` to `nginx.{cert,key}`, so Moonraker never starts its own HTTPS server and nginx can bind `7130`.
+  - A one-time on-host step; neither this repo nor ansible performs it.
+
+### klipper-v0-4432
+
+- `ldo-upstream-printer.cfg` — the original LDO/Voron installer's full template, kept only for diffing against upstream.
+  - **Not** included by `printer.cfg` (which was customized directly). Don't assume it reflects live config.
+- `ldo-picobilical.cfg` — pin mappings for the Picobilical toolhead's onboard RP2040 (`[mcu umb]`), customized from [LDO's template](https://github.com/MotorDynamicsLab/LDO-Picobilical).
+- Its `[mcu rpi]`/`[adxl345]`/`[resonance_tester]` block has nothing to do with `umb`:
+  - The ADXL345 is wired by its own FFC cable straight to the Pi's SPI/GPIO header — not part of the 14-pin umbilical; the `umb` RP2040 has no SPI pins routed to it (confirmed from LDO schematics and wiring photos).
+  - So it's a Klipper host-MCU device (`serial: /tmp/klipper_host_mcu`), not `umb:`-pin.
+- Host setup it required (not captured anywhere else in the repo):
+  - SPI enabled via `raspi-config` (reboot needed for `/dev/spidev0.0`).
+  - User added to the `tty` group (`/tmp/klipper_host_mcu` is a pty owned `root:tty`; Klipper otherwise can't connect).
+  - `~/klipper/scripts/klipper-mcu.service` installed and enabled.
+  - `~/klipper/.config` temporarily set to `CONFIG_MACH_LINUX=y` for one `make flash` (installs `/usr/local/bin/klipper_mcu`, restarts the service), then restored to the RP2040 toolhead build so a future toolhead rebuild doesn't target the wrong architecture.
+- Per LDO's guide, keep the FFC unplugged except during `ACCELEROMETER_QUERY`/`SHAPER_CALIBRATE`.
+  - Safe because Klipper's `adxl345` only probes the chip ID when a measurement starts, not at connect, so the printer reaches "ready" either way.
+
+### klipper-vs-146 fans (Big P4ppa HAT)
+
+- Pi-side fans hang off a Big P4ppa v1 HAT ([gcormier/bigp4ppa](https://github.com/gcormier/bigp4ppa)).
+  - Five AO3402 low-side MOSFET outputs, hardwired left to right to gpio12/13/18/26/23, each with its own 5V/12V/24V jumper.
+  - v1 silkscreen mislabels outputs 4 and 5 as "GPIO19" — no output is on gpio19.
+- Output assignments:
+  - Out 1, gpio12 / PWM0 — `[temperature_fan bed_fan]`.
+  - Out 2, gpio13 / PWM1 — `[heater_fan case]` (24V 2-wire fan).
+  - Out 3, gpio18 — always-on `raspberry_pi_fan` (`[static_digital_output]`); gpio18 can't be hardware PWM anyway (shares PWM0 with gpio12).
+- `bed_fan` and `case` use the Pi 4's two hardware PWM channels (`rpi:pwmchip0/pwm0` / `pwm1`) because the host MCU's jittery software PWM made them hum.
+- Both run at 100Hz (`cycle_time: 0.01`).
+  - At 25kHz the flyback diode averages PWM into DC-like voltage: a 24V fan at 25% sees ~6V and stalls. Partial duty also whined.
+- Host requirements, or Klipper fails to start:
+  - `dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4` in `/boot/firmware/config.txt` (ansible `boot_config_overlays` host var).
+  - Both channels in `hard_pwm_exports`.
+  - The base role's `lineinfile` only appends overlays; the old single-channel `dtoverlay=pwm,pin=12,func=4` line had to be removed by hand once (two PWM overlays conflict). Do the same for any future overlay change.
+
+#### Bed fans (`bed_fan` / `BED_FANS`)
+
+- Two 2-wire blowers in parallel on the Y carriage, blowing on the bed heater to warm the chamber; replaced the nevermore.
+- Follows Ellis's bed-fan strategy (off while the bed heats, on once at target), implemented as a `watermark` `temperature_fan` reading the bed via `temperature_combined`.
+  - Not Ellis's `rename_existing` `M190`/`M140` overrides + `delayed_gcode` poll loop: a delayed_gcode can't run while `PRINT_START` holds the gcode mutex for the whole soak. Sensor callbacks aren't mutex-bound.
+- `BED_FANS` (`bed_fan.cfg`) sets the watermark `band` C below the bed target, so fans turn on at target and cut out below target−2C.
+- `BED_FANS` leaves targets under `threshold` (PLA/PETG) fan-free.
+- Why watermark: with the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater`.
+  - `verify_heater` requires 2C/60s gain until within 5C of target; the watermark keeps the bed out of that window by construction.
+
+## Scripts
+
+- `scripts/upgrade-klipper-<printer>.sh` — run on that printer's host to pull `~/klipper` and rebuild/reflash all its Klipper MCUs (README's "Upgrading Klipper firmware" runbooks, automated).
+- The generic flow lives in the sourced `scripts/lib/upgrade-klipper.sh`: preflight, refuse-if-printing, ff-only pull, always-restore `.config` on exit, start + version-check.
+- Each printer's script only declares its targets via `DEFAULT_CONFIG`/`MCUS` and `preflight_targets`/`flash_targets` hooks.
+- Serial paths/CAN UUIDs/MCU names are hardcoded copies of `printer.cfg`'s `[mcu*]` sections — keep them in sync if a board is replaced.
 
 ## Naming conventions
 
-`temperature_sensor` and fan (`heater_fan`/`controller_fan`/`temperature_fan`) object names are suffixed with their resource type — `_temp` for temperature sensors, `_fan` for fans — even though the section prefix already implies it (e.g. `mcu_temp`, `chamber_temp`, `hotend_fan`). This keeps the name unambiguous when read out of context, such as inside a `SENSOR="temperature_sensor chamber_temp"` string in a macro. Both printers follow this.
+- `temperature_sensor` and fan (`heater_fan`/`controller_fan`/`temperature_fan`) names are suffixed with their resource type, even though the section prefix implies it.
+  - `_temp` for temperature sensors, `_fan` for fans (e.g. `mcu_temp`, `chamber_temp`, `hotend_fan`).
+  - Keeps names unambiguous out of context, e.g. in `SENSOR="temperature_sensor chamber_temp"` inside a macro.
+- Both printers follow this.
 
 ## Comment style
 
-Keep comments inside `.cfg`/macro files short — a line, or a couple at most. State the non-obvious fact (a hidden constraint, why a value is what it is, a gotcha) and stop; don't narrate history, restate what the code already shows, or write CLAUDE.md-style long-form prose inline. That kind of exhaustive explanation belongs in this file, not in the config.
+- Keep comments in `.cfg`/macro files short — a line, or a couple at most.
+- State the non-obvious fact (a hidden constraint, why a value is what it is, a gotcha) and stop.
+- Don't narrate history, restate what the code shows, or write long-form prose inline — that belongs in this file.
 
 ## Secrets
 
-Credentials (`secrets.conf`, Moonraker/Fluidd local state, printer host backups like `printer-*.cfg` and `.moonraker.conf.bkp`) are gitignored and kept out of version control — see `.gitignore` (patterns are unanchored, so they match under `printers/*/` too). Never add secrets back into tracked files; reference them via the existing `[secrets]` indirection pattern in `telegram.conf` instead.
+- Credentials are gitignored: `secrets.conf`, Moonraker/Fluidd local state, host backups like `printer-*.cfg` and `.moonraker.conf.bkp`.
+  - `.gitignore` patterns are unanchored, so they match under `printers/*/` too.
+- Never add secrets to tracked files; use the existing `[secrets]` indirection pattern in `telegram.conf`.
