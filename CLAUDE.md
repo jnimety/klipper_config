@@ -57,6 +57,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - 0.6: `Voron Switchwire 235 0.6 nozzle - VS.146` (inherits Orca's 0.6 Switchwire) + `0.30mm Standard 0.6 nozzle @Voron - VS.146`.
     - The 0.6 process is a copy of the 0.4 one with only nozzle-dependent values changed — mirror any other process tweak to both.
       - Line widths 0.68 (top surface 0.55, support 0.5) and a 0.2 first layer, from PrusaSlicer's Voron 3.0.0 `@SWITCHWIRE - 0.6mm` profiles; 0.3 layer height from Orca's built-in 0.6 process.
+  - Every process preset (both printers, both VS.146 nozzles) has a Standard and a Structural variant, e.g. `0.20mm Structural @Voron - VS.146`:
+    - Standard: 20% infill, 3 top / 3 bottom shells, 0.6mm top/bottom shell thickness.
+    - Structural: 40% infill, 5 top / 5 bottom shells, 0.8mm top thickness, alternate extra wall on.
+      - Ensure vertical shell thickness is Moderate, not Standard's All: Orca prompts to change it, since the two don't work well together.
+    - Otherwise identical — mirror any other process tweak to both variants.
     - `printer.cfg`'s `nozzle_diameter` deliberately stays `0.400` across swaps: on vs-146 Kalico only uses it for defaults that are set explicitly (`max_extrude_cross_section`, `max_extrude_only_*`).
 - See `README.md` for the full directory tree and the deployment runbook.
   - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.
