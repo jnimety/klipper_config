@@ -73,7 +73,7 @@
 	"min_layer_height": [
 		"0.075"
 	],
-	"name": "Voron Switchwire 250 0.4 nozzle - VS.146",
+	"name": "Voron Switchwire 235 0.4 nozzle - VS.146",
 	"print_host": "https://klipper-vs-146.local:7130",
 	"print_host_webui": "https://mainsail.nimety.com?printer=VS.146",
 	"printable_area": [
@@ -90,7 +90,7 @@
 	"printer_extruder_variant": [
 		"Direct Drive Standard"
 	],
-	"printer_settings_id": "Voron Switchwire 250 0.4 nozzle - VS.146",
+	"printer_settings_id": "Voron Switchwire 235 0.4 nozzle - VS.146",
 	"retract_before_wipe": [
 		"80%"
 	],

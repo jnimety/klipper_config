@@ -26,7 +26,7 @@
 	"calib_flowrate_topinfill_special_order": "0",
 	"combine_brims": "0",
 	"compatible_printers": [
-		"Voron Switchwire 250 0.4 nozzle - VS.146"
+		"Voron Switchwire 235 0.4 nozzle - VS.146"
 	],
 	"compatible_printers_condition": "",
 	"counterbore_hole_bridging": "none",

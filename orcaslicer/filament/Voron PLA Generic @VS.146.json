@@ -1,6 +1,6 @@
 {
 	"compatible_printers": [
-		"Voron Switchwire 250 0.4 nozzle - VS.146"
+		"Voron Switchwire 235 0.4 nozzle - VS.146"
 	],
 	"enable_pressure_advance": [
 		"1"
