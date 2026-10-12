@@ -1,0 +1,111 @@
+{
+	"before_layer_change_gcode": "; BEFORE_LAYER_CHANGE\n; [layer_z]\nG92 E0\n\n",
+	"change_filament_gcode": "M600",
+	"deretraction_speed": [
+		"35"
+	],
+	"enable_filament_ramming": "0",
+	"extruder_clearance_height_to_rod": "33",
+	"extruder_clearance_radius": "75",
+	"from": "User",
+	"host_type": "moonraker",
+	"inherits": "Voron Switchwire 250 0.6 nozzle",
+	"layer_change_gcode": "; AFTER_LAYER_CHANGE\n; [layer_z]\n\n; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+	"machine_end_gcode": "PRINT_END\n\n; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\n; total layers count = [total_layer_count]",
+	"machine_max_acceleration_e": [
+		"2000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"3000",
+		"20000"
+	],
+	"machine_max_acceleration_retracting": [
+		"3000",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"4000",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"4000",
+		"20000"
+	],
+	"machine_max_acceleration_z": [
+		"3000",
+		"200"
+	],
+	"machine_max_jerk_e": [
+		"1",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"5",
+		"12"
+	],
+	"machine_max_jerk_y": [
+		"5",
+		"12"
+	],
+	"machine_max_jerk_z": [
+		"5",
+		"0.4"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"25"
+	],
+	"machine_max_speed_x": [
+		"200",
+		"200"
+	],
+	"machine_max_speed_y": [
+		"200",
+		"200"
+	],
+	"machine_max_speed_z": [
+		"50",
+		"12"
+	],
+	"machine_start_gcode": "; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n\nM104 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nM140 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature] CHAMBER=[chamber_temperature] CHAMBER_MINIMAL=[chamber_minimal_temperature] MATERIAL=[filament_type[initial_extruder]]",
+	"manual_filament_change": "1",
+	"name": "Voron Switchwire 235 0.6 nozzle - VS.146",
+	"print_host": "https://klipper-vs-146.local:7130",
+	"print_host_webui": "https://mainsail.nimety.com?printer=VS.146",
+	"printable_area": [
+		"0x0",
+		"235x0",
+		"235x235",
+		"0x235"
+	],
+	"printable_height": "220",
+	"printer_agent": "moonraker",
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"printer_settings_id": "Voron Switchwire 235 0.6 nozzle - VS.146",
+	"retract_before_wipe": [
+		"80%"
+	],
+	"retract_lift_above": [
+		"0.3"
+	],
+	"retraction_length": [
+		"0.5"
+	],
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retraction_speed": [
+		"35"
+	],
+	"thumbnails": "32x32/PNG, 400x300/PNG",
+	"version": "1.9.0.2",
+	"z_hop": [
+		"0.2"
+	]
+}

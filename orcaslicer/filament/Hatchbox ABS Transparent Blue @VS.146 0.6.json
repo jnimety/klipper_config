@@ -1,0 +1,22 @@
+{
+	"compatible_printers": [
+		"Voron Switchwire 235 0.6 nozzle - VS.146"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.9292"
+	],
+	"filament_settings_id": [
+		"Hatchbox ABS Transparent Blue @VS.146 0.6"
+	],
+	"from": "User",
+	"inherits": "Hatchbox ABS Transparent Blue",
+	"is_custom_defined": "0",
+	"name": "Hatchbox ABS Transparent Blue @VS.146 0.6",
+	"pressure_advance": [
+		"0.001"
+	],
+	"version": "1.9.0.2"
+}

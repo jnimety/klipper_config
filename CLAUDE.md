@@ -44,9 +44,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Base: `filament/base/<Vendor> <Type> <Color>.json` — material settings, flow ratio `1`, Orca PA off, no `SET_PRESSURE_ADVANCE` in start gcode.
     - Bases set `compatible_printers` to a nonexistent printer so they're hidden from every printer's filament list; each child's own `compatible_printers` overrides it.
     - Children: `filament/<base> @VS.146.json` / `@V0.4432.json` — `inherits` the base, `compatible_printers` pins one printer, Orca PA always on, plus that printer's flow ratio and any other per-printer tweaks.
+    - VS.146 has a child per nozzle: `@VS.146` (0.4) and `@VS.146 0.6`, so PA/max flow tuned on one nozzle never touches the other.
     - Bases must live in `base/`: Orca can't resolve a user preset inheriting a sibling user preset ([OrcaSlicer#9536](https://github.com/OrcaSlicer/OrcaSlicer/issues/9536)), but loads `base/` first. One level only — a base can't inherit another base.
     - On save Orca drops any child value equal to its base's, so a base edit to a typically-per-printer setting can silently retune a printer.
     - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
+  - VS.146 has a machine + process preset per nozzle (Revo swaps), selected in Orca by picking the printer:
+    - 0.4: `Voron Switchwire 235 0.4 nozzle - VS.146` + `0.20mm Standard @Voron - VS.146`.
+    - 0.6: `Voron Switchwire 235 0.6 nozzle - VS.146` (inherits Orca's 0.6 Switchwire) + `0.30mm Standard 0.6 nozzle @Voron - VS.146`.
+    - The 0.6 process is a copy of the 0.4 one with only nozzle-dependent values changed — mirror any other process tweak to both.
+      - Line widths 0.68 (top surface 0.55, support 0.5) and a 0.2 first layer, from PrusaSlicer's Voron 3.0.0 `@SWITCHWIRE - 0.6mm` profiles; 0.3 layer height from Orca's built-in 0.6 process.
+    - `printer.cfg`'s `nozzle_diameter` deliberately stays `0.400` across swaps: on vs-146 Kalico only uses it for defaults that are set explicitly (`max_extrude_cross_section`, `max_extrude_only_*`).
 - See `README.md` for the full directory tree and the deployment runbook.
   - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.
 

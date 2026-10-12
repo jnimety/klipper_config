@@ -8,10 +8,11 @@ You are auditing whether each printer's OrcaSlicer machine profile still matches
 
 ## The two printers and their fixed file locations
 
-- **klipper-vs-146**: real config at `printers/klipper-vs-146/printer.cfg` (`[printer]` section). OrcaSlicer user override at
-  `orcaslicer/machine/Voron Switchwire 235 0.4 nozzle - VS.146.json`,
-  which inherits (in order) `fdm_machine_common.json` → `fdm_klipper_common.json` → `Voron Switchwire 250 0.4 nozzle.json`, all three under
-  `~/Library/Application Support/OrcaSlicer/system/Voron/machine/`.
+- **klipper-vs-146**: real config at `printers/klipper-vs-146/printer.cfg` (`[printer]` section). Two OrcaSlicer user overrides, one per
+  nozzle (audit both — they must stay identical apart from the nozzle-specific bits):
+  `orcaslicer/machine/Voron Switchwire 235 0.4 nozzle - VS.146.json` and `orcaslicer/machine/Voron Switchwire 235 0.6 nozzle - VS.146.json`,
+  which inherit (in order) `fdm_machine_common.json` → `fdm_klipper_common.json` → `Voron Switchwire 250 0.4 nozzle.json` /
+  `Voron Switchwire 250 0.6 nozzle.json`, all under `~/Library/Application Support/OrcaSlicer/system/Voron/machine/`.
 - **klipper-v0-4432**: real config at `printers/klipper-v0-4432/printer.cfg` (`[printer]` section). OrcaSlicer user override at
   `orcaslicer/machine/Voron V0.2 0.4 nozzle - V0.4432.json`,
   which inherits `fdm_machine_common.json` → `fdm_klipper_common.json` → `Voron 0.1 0.4 nozzle.json` (this repo's V0.2 has no dedicated
