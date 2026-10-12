@@ -238,7 +238,10 @@ Deliberately tight, same meaning on both printers:
   - `_LED_COLOR` is the lower-level macro holding the name→RGBW lookup and the `SET_LED` call.
 - With an optional `MSG`, it also emits:
   - a plain `RESPOND` (console)
-  - a `RESPOND PREFIX=tgnotify` (Telegram, via moonraker-telegram-bot)
+  - a `RESPOND PREFIX=tgnotify` (new Telegram message), or `PREFIX=tgnotify_status` with `STATUS_ONLY=1` (edits the live status message), via moonraker-telegram-bot
+    - The bot reads the gcode response stream, so the prefixed line always reaches the console too, doubling every message.
+    - Each printer's web UI hides it with a `^tgnotify` console filter (Fluidd on vs-146: Settings → Console; Mainsail on v0-4432: Settings → Console → Console Filters).
+    - Filters are client-side only (the bot still sees the line) and live in Moonraker's database, not this repo, so re-add them by hand after a UI/database reset.
   - an `M117` (LCD status line)
 - Because messaging lives in `_LED_SET`, it only fires where an override actually has a light; the no-op defaults say nothing.
 - This replaced ad hoc `RESPOND PREFIX=tgnotify` lines next to individual `*_NOTIFY` calls (`PRINT_END`, `SCREWS_TILT_CALCULATE`, `M600`).
