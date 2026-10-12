@@ -306,17 +306,19 @@ Deliberately tight, same meaning on both printers:
 
 - Both macros disable the configured `runout_sensor` (the same `_CLIENT_VARIABLE` field `RESUME` reads) for their extrude/retract moves, then re-enable it.
   - A printer with no `runout_sensor` set skips the `SET_FILAMENT_SENSOR` calls.
-- Why: vs-146's `filament_motion_sensor` (encoder-based BTT smart sensor) occasionally missed a pulse near the end of `LOAD_FILAMENT` and fired `runout_gcode` mid-load.
-  - The user is deliberately feeding/removing filament here, so there's nothing genuine to detect.
+- Why: the user is deliberately feeding/removing filament here, so there's nothing genuine to detect.
+  - Originally added because vs-146's `filament_motion_sensor` (encoder-based BTT smart sensor) was blamed for missing pulses; that diagnosis was wrong.
+  - The real cause of vs-146's runout trips was the Revo not keeping up with print flow — the filament stalled and the sensor was correct. Kept by choice anyway.
 - The `ENABLE=1` is preceded by its own `M400`.
   - `SET_FILAMENT_SENSOR` runs the instant the interpreter reaches it, not when the toolhead gets there; the preceding `G1` is only queued.
-  - Without `M400`, it re-armed while the last move (the stretch the encoder struggles with) was still in flight, and still false-triggered.
+  - Without `M400`, it re-armed while the last move was still in flight, reopening the window the disable is meant to cover.
 - Evidence (from `~/klipper/klippy/extras/filament_motion_sensor.py`/`filament_switch_sensor.py` on the vs-146 host):
   - `EncoderSensor` polls a 0.25s timer comparing live extruder position (via `find_past_position`/real print time) against "position at last encoder pulse + `detection_length`".
   - That check is gated only by `idle_timeout` state, not `sensor_enabled`; only the `runout_gcode` dispatch is gated by `sensor_enabled`.
 - This is new behavior, not a restoration of the old vs-146 `client_macros.cfg` `SET_FILAMENT_SENSOR` wrapping around `PAUSE`/`RESUME`/`CANCEL_PRINT` (which never touched load/unload).
 - vs-146's `[filament_motion_sensor filament_sensor]` uses `pause_on_runout: True`; its `runout_gcode` calls `_ATTENTION_NOTIFY` then `_LOAD_FILAMENT_PROMPT`.
-  - It no longer calls `M600`, so a real runout doesn't auto-unload. A spurious fire is still an unwanted pause-and-prompt, so the disable/enable fix stays relevant.
+  - It no longer calls `M600`, so a real runout doesn't auto-unload.
+  - A mid-print trip most likely means a flow stall (Revo can't melt fast enough), not a sensor fault — check the filament preset's max volumetric speed first.
 
 #### `M600`
 
