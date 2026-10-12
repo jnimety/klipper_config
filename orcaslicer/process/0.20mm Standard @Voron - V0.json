@@ -182,7 +182,7 @@
 	"overhang_reverse_internal_only": "0",
 	"overhang_reverse_threshold": "50%",
 	"post_process": [
-		"~/workspace/klipper_estimator/target/release/klipper_estimator --config_moonraker_url https://klipper-v0-4432.local:7130 post-process"
+		"~/workspace/klipper_config/scripts/klipper-estimator-post-process.sh klipper-v0-4432"
 	],
 	"precise_outer_wall": "1",
 	"precise_z_height": "0",

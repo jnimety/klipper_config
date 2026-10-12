@@ -432,6 +432,10 @@ Deliberately tight, same meaning on both printers:
 - The generic flow lives in the sourced `scripts/lib/upgrade-klipper.sh`: preflight, refuse-if-printing, ff-only pull, always-restore `.config` on exit, start + version-check.
 - Each printer's script only declares its targets via `DEFAULT_CONFIG`/`MCUS` and `preflight_targets`/`flash_targets` hooks.
 - Serial paths/CAN UUIDs/MCU names are hardcoded copies of `printer.cfg`'s `[mcu*]` sections — keep them in sync if a board is replaced.
+- `scripts/klipper-estimator-post-process.sh <hostname>` — runs on the Mac as both process presets' Orca `post_process` (Orca appends the gcode path).
+  - Runs klipper_estimator (built at `~/workspace/klipper_estimator`) against the printer's live Moonraker config, cached to `~/.cache/klipper_estimator/<hostname>.json`.
+  - Printer off: uses the cache. Printer off with no cache yet: exits 0 and leaves the gcode untouched, so slicing never fails.
+  - Why not just `--config_moonraker_ignore_error`: with no cache it falls back to an empty string and fails parsing it (v3.7.3); a `{}` cache instead yields estimates from built-in default limits, worse than Orca's own.
 
 ## Naming conventions
 
