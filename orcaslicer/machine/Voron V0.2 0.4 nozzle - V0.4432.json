@@ -1,0 +1,90 @@
+{
+	"before_layer_change_gcode": "; BEFORE_LAYER_CHANGE\n; [layer_z]\nG92 E0\n",
+	"change_filament_gcode": "M600",
+	"deretraction_speed": [
+		"35"
+	],
+	"enable_filament_ramming": "0",
+	"extruder_clearance_height_to_rod": "33",
+	"extruder_clearance_radius": "75",
+	"from": "User",
+	"host_type": "moonraker",
+	"inherits": "Voron 0.1 0.4 nozzle",
+	"layer_change_gcode": "; AFTER_LAYER_CHANGE\n; [layer_z]\n\n; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+	"machine_end_gcode": "PRINT_END\n\n; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\n; total layers count = [total_layer_count]",
+	"machine_max_acceleration_e": [
+		"1330.41",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"5000",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"5000",
+		"20000"
+	],
+	"machine_max_acceleration_z": [
+		"400",
+		"200"
+	],
+	"machine_max_jerk_e": [
+		"1",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"6",
+		"12"
+	],
+	"machine_max_jerk_y": [
+		"6",
+		"12"
+	],
+	"machine_max_speed_e": [
+		"106.43",
+		"25"
+	],
+	"machine_max_speed_x": [
+		"400",
+		"200"
+	],
+	"machine_max_speed_y": [
+		"400",
+		"200"
+	],
+	"machine_max_speed_z": [
+		"25",
+		"12"
+	],
+	"machine_start_gcode": "; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n\nM104 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nM140 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature] CHAMBER=[chamber_temperature] CHAMBER_MINIMAL=[chamber_minimal_temperature] MATERIAL=[filament_type[initial_extruder]]",
+	"manual_filament_change": "1",
+	"name": "Voron V0.2 0.4 nozzle - V0.4432",
+	"print_host": "https://klipper-v0-4432.local:7130",
+	"print_host_webui": "https://mainsail.nimety.com?printer=V0.4432",
+	"printer_agent": "moonraker",
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"printer_settings_id": "Voron V0.2 0.4 nozzle - V0.4432",
+	"retract_before_wipe": [
+		"80%"
+	],
+	"retraction_length": [
+		"0.5"
+	],
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retraction_speed": [
+		"35"
+	],
+	"support_chamber_temp_control": "0",
+	"thumbnails": "32x32/PNG, 400x300/PNG",
+	"version": "2.4.0.2",
+	"z_hop": [
+		"0.2"
+	]
+}

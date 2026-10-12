@@ -18,6 +18,7 @@ klipper_config/
 │   ├── print_end.cfg          # PRINT_END
 │   ├── print_start.cfg        # PRINT_START + no-op printer hooks (CHECK_BED_LEVEL, CLEAN_NOZZLE_PARK, CLEAN_NOZZLE, BED_FANS)
 │   └── squiggly_purge.cfg     # SQUIGGLY_PURGE, vendored
+├── orcaslicer/               # OrcaSlicer user presets (machine/process/filament), symlinked from the slicer's config dir — see below
 └── printers/
     ├── klipper-vs-146/        # SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN toolhead / corexz / Cartographer V3 probe / Fluidd
     │   ├── printer.cfg
@@ -60,6 +61,18 @@ Each host gets a single clone of this repo, with `~/printer_data/config` symlink
 Do one printer at a time — whichever isn't mid-print — with a soak period before touching the second.
 
 For an already-bootstrapped host (symlink already in place), re-running `ansible/site.yml` covers routine config-only pushes on its own: its `klipper_config_repo` role pulls this repo and restarts klipper + moonraker automatically whenever the pull actually changed something, refusing the restart if a print is active (see `ansible/README.md`). This runbook is still the manual fallback — for the initial symlink swap, or when applying a pulled change by hand without ansible.
+
+## OrcaSlicer presets
+
+`orcaslicer/` holds OrcaSlicer's user presets; the slicer's own user preset directory is a symlink into it, so saving a preset in Orca changes the repo directly. One-time setup on a new Mac (quit Orca first):
+
+```sh
+ORCA_USER="$HOME/Library/Application Support/OrcaSlicer/user"
+mv "$ORCA_USER/default" "$ORCA_USER/default.bak"   # Orca's fresh/old presets, if any
+ln -s ~/workspace/klipper_config/orcaslicer "$ORCA_USER/default"
+```
+
+Launch Orca and confirm both printers' presets appear, then delete `default.bak`. After an Orca upgrade, check `user/default` is still a symlink.
 
 ## Upgrading Klipper firmware (klipper-vs-146)
 

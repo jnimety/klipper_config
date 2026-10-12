@@ -1,0 +1,69 @@
+{
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"chamber_minimal_temperature": [
+		"40"
+	],
+	"chamber_temperature": [
+		"45"
+	],
+	"close_fan_the_first_x_layers": [
+		"2"
+	],
+	"default_filament_colour": [
+		"#D7D7D7"
+	],
+	"fan_max_speed": [
+		"25"
+	],
+	"fan_min_speed": [
+		"25"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flow_ratio": [
+		"0.9092"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_settings_id": [
+		"Hatchbox Silver ABS - VS.146"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode"
+	],
+	"filament_vendor": [
+		"Hatchbox"
+	],
+	"from": "User",
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"hot_plate_temp": [
+		"105"
+	],
+	"inherits": "Generic ABS @System",
+	"name": "Hatchbox Silver ABS - VS.146",
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"210"
+	],
+	"overhang_fan_speed": [
+		"45"
+	],
+	"slow_down_layer_time": [
+		"1"
+	],
+	"version": "1.9.0.2"
+}

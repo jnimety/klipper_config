@@ -33,6 +33,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `mainsail.cfg` — vendored client macro pack (`PAUSE`/`RESUME`/`CANCEL_PRINT` etc.)
 - Each printer directory has a `macros` symlink to `macros/`, included as `[include macros/<file>.cfg]`.
 - `scripts/` — firmware upgrade scripts (see [Scripts](#scripts)).
+- `orcaslicer/` — OrcaSlicer user presets (`machine/`, `process/`, `filament/`, `filament/base/`), each a `.json` + `.info` pair.
+  - `~/Library/Application Support/OrcaSlicer/user/default` is a symlink to it, so saving a preset in Orca edits the repo directly (setup in `README.md`).
+  - Quit Orca before hand-editing these — it holds presets in memory and overwrites them on save.
+  - Commit `.info` files with their `.json`; their sync metadata (`updated_time`, `base_id`) makes occasional noise diffs.
+  - Only user presets are tracked; Orca's vendor pack (`system/`) and app state (`OrcaSlicer.conf`) stay out of the repo.
 - See `README.md` for the full directory tree and the deployment runbook.
   - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.
 

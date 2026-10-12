@@ -1,0 +1,57 @@
+{
+	"chamber_minimal_temperature": [
+		"40"
+	],
+	"chamber_temperature": [
+		"45"
+	],
+	"close_fan_the_first_x_layers": [
+		"2"
+	],
+	"default_filament_colour": [
+		"#4A192C"
+	],
+	"fan_max_speed": [
+		"25"
+	],
+	"fan_min_speed": [
+		"25"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flow_ratio": [
+		"0.9292"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_settings_id": [
+		"Paramount Decepticon Purple ABS - VS.146"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n; SET_PRESSURE_ADVANCE ADVANCE=0.5"
+	],
+	"filament_vendor": [
+		"Paramount"
+	],
+	"from": "User",
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"hot_plate_temp": [
+		"105"
+	],
+	"inherits": "Generic ABS @System",
+	"name": "Paramount Decepticon Purple ABS - VS.146",
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"overhang_fan_speed": [
+		"55"
+	],
+	"version": "1.9.0.2"
+}
