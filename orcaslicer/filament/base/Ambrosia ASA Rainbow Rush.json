@@ -42,9 +42,8 @@
 		"3"
 	],
 	"compatible_printers": [
-		"Voron Switchwire 250 0.4 nozzle - VS.146"
+		"Filament base preset - select a printer child"
 	],
-	"compatible_printers_condition": "",
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
@@ -69,7 +68,7 @@
 		"1"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"eng_plate_temp": [
 		"100"
@@ -129,7 +128,7 @@
 		"Direct Drive Standard"
 	],
 	"filament_flow_ratio": [
-		"0.95"
+		"1"
 	],
 	"filament_flush_temp": [
 		"0"
@@ -217,7 +216,7 @@
 		"nil"
 	],
 	"filament_settings_id": [
-		"Ambrosia ASA Rainbow Rush @Voron Switchwire 250 0.4 nozzle - VS.146"
+		"Ambrosia ASA Rainbow Rush"
 	],
 	"filament_shrink": [
 		"100%"
@@ -305,7 +304,7 @@
 	"long_retractions_when_ec": [
 		"0"
 	],
-	"name": "Ambrosia ASA Rainbow Rush @Voron Switchwire 250 0.4 nozzle - VS.146",
+	"name": "Ambrosia ASA Rainbow Rush",
 	"nozzle_temperature": [
 		"260"
 	],
@@ -326,9 +325,6 @@
 	],
 	"pellet_flow_coefficient": [
 		"0.4157"
-	],
-	"pressure_advance": [
-		"0.04"
 	],
 	"reduce_fan_stop_start_freq": [
 		"1"

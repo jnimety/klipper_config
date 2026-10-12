@@ -1,63 +1,63 @@
 {
 	"chamber_minimal_temperature": [
-		"45"
+		"40"
 	],
 	"chamber_temperature": [
-		"55"
+		"45"
 	],
 	"close_fan_the_first_x_layers": [
-		"5"
+		"4"
+	],
+	"compatible_printers": [
+		"Filament base preset - select a printer child"
 	],
 	"default_filament_colour": [
-		"#BFBFBF"
+		"#00C0F6"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"fan_max_speed": [
-		"15"
+		"35"
 	],
 	"fan_min_speed": [
-		"5"
+		"25"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard"
 	],
 	"filament_flow_ratio": [
-		"0.925"
+		"1"
 	],
 	"filament_max_volumetric_speed": [
-		"10"
+		"16"
 	],
 	"filament_settings_id": [
-		"Polymaker ASA Grey - VS.146"
+		"Hatchbox ABS Transparent Blue"
 	],
-	"filament_shrink": [
-		"99.28%"
+	"filament_start_gcode": [
+		"; Filament gcode"
+	],
+	"filament_vendor": [
+		"Hatchbox"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"4"
+	],
 	"hot_plate_temp": [
 		"105"
 	],
-	"hot_plate_temp_initial_layer": [
-		"105"
-	],
-	"inherits": "PolyLite ASA @System",
-	"name": "Polymaker ASA Grey - VS.146",
-	"nozzle_temperature": [
-		"270"
-	],
-	"nozzle_temperature_initial_layer": [
-		"270"
-	],
+	"inherits": "Generic ABS @System",
+	"name": "Hatchbox ABS Transparent Blue",
 	"nozzle_temperature_range_high": [
-		"260"
+		"240"
 	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"210"
 	],
-	"pressure_advance": [
-		"0.03"
+	"overhang_fan_speed": [
+		"35"
 	],
-	"version": "2.4.0.3"
+	"version": "1.9.0.2"
 }

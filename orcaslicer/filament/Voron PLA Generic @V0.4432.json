@@ -1,0 +1,19 @@
+{
+	"compatible_printers": [
+		"Voron V0.2 0.4 nozzle - V0.4432"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_settings_id": [
+		"Voron PLA Generic @V0.4432"
+	],
+	"from": "User",
+	"inherits": "Voron PLA Generic",
+	"is_custom_defined": "0",
+	"name": "Voron PLA Generic @V0.4432",
+	"pressure_advance": [
+		"0.025"
+	],
+	"version": "1.9.0.2"
+}

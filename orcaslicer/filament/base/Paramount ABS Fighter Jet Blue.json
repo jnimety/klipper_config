@@ -8,8 +8,14 @@
 	"close_fan_the_first_x_layers": [
 		"4"
 	],
+	"compatible_printers": [
+		"Filament base preset - select a printer child"
+	],
 	"default_filament_colour": [
 		"#253746"
+	],
+	"enable_pressure_advance": [
+		"0"
 	],
 	"fan_max_speed": [
 		"25"
@@ -21,16 +27,16 @@
 		"Direct Drive Standard"
 	],
 	"filament_flow_ratio": [
-		"0.9292"
+		"1"
 	],
 	"filament_max_volumetric_speed": [
 		"16"
 	],
 	"filament_settings_id": [
-		"Paramount Fighter Jet Blue ABS - VS.146"
+		"Paramount ABS Fighter Jet Blue"
 	],
 	"filament_start_gcode": [
-		"; Filament gcode\n; SET_PRESSURE_ADVANCE ADVANCE=0.300"
+		"; Filament gcode"
 	],
 	"filament_vendor": [
 		"Paramount"
@@ -43,7 +49,7 @@
 		"105"
 	],
 	"inherits": "Generic ABS @System",
-	"name": "Paramount Fighter Jet Blue ABS - VS.146",
+	"name": "Paramount ABS Fighter Jet Blue",
 	"nozzle_temperature_range_high": [
 		"260"
 	],

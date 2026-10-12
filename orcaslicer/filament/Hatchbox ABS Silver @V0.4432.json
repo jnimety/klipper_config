@@ -1,0 +1,19 @@
+{
+	"compatible_printers": [
+		"Voron V0.2 0.4 nozzle - V0.4432"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_settings_id": [
+		"Hatchbox ABS Silver @V0.4432"
+	],
+	"from": "User",
+	"inherits": "Hatchbox ABS Silver",
+	"is_custom_defined": "0",
+	"name": "Hatchbox ABS Silver @V0.4432",
+	"pressure_advance": [
+		"0.025"
+	],
+	"version": "1.9.0.2"
+}

@@ -36,8 +36,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `orcaslicer/` — OrcaSlicer user presets (`machine/`, `process/`, `filament/`, `filament/base/`), each a `.json` + `.info` pair.
   - `~/Library/Application Support/OrcaSlicer/user/default` is a symlink to it, so saving a preset in Orca edits the repo directly (setup in `README.md`).
   - Quit Orca before hand-editing these — it holds presets in memory and overwrites them on save.
+  - After any hand edit, reformat to Orca's own output (tab indent, keys sorted) so its next save doesn't produce a whitespace/reorder diff: `jq --tab -S . f.json > f.tmp && mv f.tmp f.json`.
+    - Verified byte-identical against Orca-saved machine, process, and filament presets.
   - Commit `.info` files with their `.json`; their sync metadata (`updated_time`, `base_id`) makes occasional noise diffs.
   - Only user presets are tracked; Orca's vendor pack (`system/`) and app state (`OrcaSlicer.conf`) stay out of the repo.
+  - Filament presets are a shared base per spool plus one child per printer:
+    - Base: `filament/base/<Vendor> <Type> <Color>.json` — material settings, flow ratio `1`, Orca PA off, no `SET_PRESSURE_ADVANCE` in start gcode.
+    - Bases set `compatible_printers` to a nonexistent printer so they're hidden from every printer's filament list; each child's own `compatible_printers` overrides it.
+    - Children: `filament/<base> @VS.146.json` / `@V0.4432.json` — `inherits` the base, `compatible_printers` pins one printer, Orca PA always on, plus that printer's flow ratio and any other per-printer tweaks.
+    - Bases must live in `base/`: Orca can't resolve a user preset inheriting a sibling user preset ([OrcaSlicer#9536](https://github.com/OrcaSlicer/OrcaSlicer/issues/9536)), but loads `base/` first. One level only — a base can't inherit another base.
+    - On save Orca drops any child value equal to its base's, so a base edit to a typically-per-printer setting can silently retune a printer.
+    - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
 - See `README.md` for the full directory tree and the deployment runbook.
   - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.
 

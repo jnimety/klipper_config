@@ -8,11 +8,14 @@
 	"close_fan_the_first_x_layers": [
 		"2"
 	],
+	"compatible_printers": [
+		"Filament base preset - select a printer child"
+	],
 	"default_filament_colour": [
 		"#FFFFFF"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"fan_max_speed": [
 		"15"
@@ -24,13 +27,13 @@
 		"Direct Drive Standard"
 	],
 	"filament_flow_ratio": [
-		"0.94"
+		"1"
 	],
 	"filament_max_volumetric_speed": [
 		"10"
 	],
 	"filament_settings_id": [
-		"Paramount Clear ABS - VS.146"
+		"Paramount ABS Clear"
 	],
 	"filament_start_gcode": [
 		"; Filament gcode"
@@ -46,7 +49,7 @@
 		"105"
 	],
 	"inherits": "Generic ABS @System",
-	"name": "Paramount Clear ABS - VS.146",
+	"name": "Paramount ABS Clear",
 	"nozzle_temperature": [
 		"280"
 	],
@@ -61,9 +64,6 @@
 	],
 	"overhang_fan_speed": [
 		"55"
-	],
-	"pressure_advance": [
-		"0.03"
 	],
 	"version": "1.9.0.2"
 }
