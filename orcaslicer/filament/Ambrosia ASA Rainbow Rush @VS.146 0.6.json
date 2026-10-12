@@ -5,6 +5,9 @@
 	"enable_pressure_advance": [
 		"1"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],
@@ -13,10 +16,9 @@
 	],
 	"from": "User",
 	"inherits": "Ambrosia ASA Rainbow Rush",
-	"is_custom_defined": "0",
 	"name": "Ambrosia ASA Rainbow Rush @VS.146 0.6",
 	"pressure_advance": [
-		"0.001"
+		"0.03"
 	],
 	"version": "2.4.0.3"
 }
