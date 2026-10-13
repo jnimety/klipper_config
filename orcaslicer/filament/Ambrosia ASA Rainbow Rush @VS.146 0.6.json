@@ -11,6 +11,9 @@
 	"filament_flow_ratio": [
 		"0.95"
 	],
+	"filament_max_volumetric_speed": [
+		"13"
+	],
 	"filament_settings_id": [
 		"Ambrosia ASA Rainbow Rush @VS.146 0.6"
 	],
