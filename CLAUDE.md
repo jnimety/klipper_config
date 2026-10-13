@@ -125,7 +125,9 @@ Pick the pattern that matches the macro being shared:
 - Each printer's own `client_variables.cfg` defines a **partial** `_CLIENT_VARIABLE` — only the variables it needs, not the full template.
   - Every other `client.*` lookup in `mainsail.cfg` falls back gracefully via `|default(...)` when unset.
   - Don't copy the rest of the template in without a reason; it'd silently change working `PAUSE`/`CANCEL_PRINT`/park defaults.
-- Both printers set `user_resume_macro: "_RESUME_NOTIFY"` and `user_cancel_macro: "_CANCEL_NOTIFY"`.
+- Both printers set `user_resume_macro: "_RESUME_NOTIFY"` and `user_cancel_macro: "_PRINT_CANCEL"`.
+  - `_PRINT_CANCEL` (shared, `print_end.cfg`) runs `BED_FANS BED=0` then `_CANCEL_NOTIFY` — the hook only takes one command.
+  - `CANCEL_PRINT` only runs `TURN_OFF_HEATERS`, so without it vs-146's `bed_fan` stayed armed at the last target (seen in the UI after a failed `CARTOGRAPHER_TOUCH_HOME`).
 - Both set `runout_sensor`, which makes `RESUME` abort if no filament is detected:
   - klipper-v0-4432: `"filament_switch_sensor Filament_Runout_Sensor"`
   - klipper-vs-146: `"filament_motion_sensor filament_sensor"`
@@ -134,6 +136,9 @@ Pick the pattern that matches the macro being shared:
   - klipper-vs-146: `retract: 3.0` / `unretract: 3.5`
   - klipper-v0-4432: `retract: 4.0` / `unretract: 4.0`
   - Any `unretract > retract` difference is a deliberate re-prime on every resume to replace what oozed during the pause.
+- Both set `park_at_cancel: True`, so `CANCEL_PRINT` parks (retract, `custom_park_dz` hop, corner) while still hot, before `TURN_OFF_HEATERS`.
+  - Skipped when cancelling from a pause, since `PAUSE` already parked.
+  - Don't park from `_PRINT_CANCEL` instead: `user_cancel_macro` runs after the heaters are off.
 
 ### `squiggly_purge.cfg` (vendored)
 
@@ -154,7 +159,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 - `_PRINT_START_NOTIFY` at the very top (see [Status notifications](#status-notifications)).
 - Heats the bed itself with `M190` (generic — both printers have `[heater_bed]`).
 - `BED_FANS BED=<target>` right after `M190` settles.
-  - `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS`.
+  - `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS`; `CANCEL_PRINT` does via `_PRINT_CANCEL`.
   - vs-146 overrides it — see [klipper-vs-146 fans](#klipper-vs-146-fans-big-p4ppa-hat).
 - `HEAT_SOAK` — see below.
 - `G28 Z` re-home after the soak, since frame thermal expansion can drift the cold Z reference taken earlier in the macro.
@@ -217,7 +222,7 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
 - `_RESUME_NOTIFY` — solid blue. Called via `mainsail.cfg`'s `user_resume_macro` hook, not a same-named `RESUME` override.
   - The hook invokes it bare (no params), so its override states a static `MSG="▶️ Print resumed."`.
   - Being a solid color, it cancels any in-progress pulse, so resuming from an attention pause clears it immediately.
-- `_CANCEL_NOTIFY` — called via `mainsail.cfg`'s `user_cancel_macro` hook, the same way.
+- `_CANCEL_NOTIFY` — called from `_PRINT_CANCEL`, `mainsail.cfg`'s `user_cancel_macro` hook (also bare, no params).
 
 #### Per-printer overrides
 
