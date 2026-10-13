@@ -172,7 +172,7 @@
 	"outer_wall_flow_ratio": "1",
 	"outer_wall_jerk": "7",
 	"outer_wall_line_width": "0.68",
-	"outer_wall_speed": "170",
+	"outer_wall_speed": "55",
 	"overhang_1_4_speed": "80%",
 	"overhang_2_4_speed": "50",
 	"overhang_3_4_speed": "30",

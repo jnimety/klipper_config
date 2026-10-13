@@ -8,6 +8,9 @@
 	"filament_flow_ratio": [
 		"0.94"
 	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
 	"filament_settings_id": [
 		"Paramount ABS Clear @VS.146 0.6"
 	],

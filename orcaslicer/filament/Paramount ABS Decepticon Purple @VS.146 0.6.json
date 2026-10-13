@@ -8,6 +8,9 @@
 	"filament_flow_ratio": [
 		"0.9292"
 	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
 	"filament_settings_id": [
 		"Paramount ABS Decepticon Purple @VS.146 0.6"
 	],
