@@ -146,7 +146,10 @@ Pick the pattern that matches the macro being shared:
 - **Do not hand-edit it** — keep byte-identical; re-copy wholesale from upstream instead.
 - Needs no per-printer extension point: it reads everything hardware-specific from `printer.configfile`/`printer.toolhead`/`printer.exclude_object`.
   - Nozzle/filament diameter, `max_extrude_cross_section`, bed bounds, live `[exclude_object]` polygons for adaptive positioning.
-- Both printers call it identically: `SQUIGGLY_PURGE PURGE_LENGTH=50` (it replaced a param-less `PRIME_LINE`).
+- Both printers call it identically: `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim}` (it replaced a param-less `PRIME_LINE`).
+  - `[exclude_object]` polygons from Orca exclude the brim, so the default 10mm margin (squiggle 7.5–12.5mm out) overlapped a 10mm brim.
+  - Every machine preset passes `BRIM=[brim_width]` to `PRINT_START` (default 0); it's the width even when brim type is "no brim", which only adds harmless distance.
+  - The purge can't start forward of Y=3.5, so a brimmed part within ~20mm of the front edge can still overlap.
 - Both printers set `max_extrude_cross_section: 1.1` (mm²) explicitly, sized to clear that purge without the macro's self-correction.
   - The stock `LINE_HEIGHT=0.6` needs roughly 1.05 mm² for a 50mm purge at default squiggle geometry, so no `action_respond_info` correction fires.
   - Replaced vs-146's implicit 0.64 mm² Klipper default and v0-4432's earlier 0.8 mm².
@@ -169,7 +172,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
   - klipper-v0-4432: no-op (no probe).
   - There is no separate `LOAD_BED_MESH` hook. A printer that wants a saved profile should load it inside its own `CHECK_BED_LEVEL` rather than adding a second hook.
 - `CLEAN_NOZZLE_PARK` → `M109` → `CLEAN_NOZZLE` for the final hotend heat (see below).
-- `SQUIGGLY_PURGE PURGE_LENGTH=50`.
+- `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim}`.
 - Adding a new printer-specific step: call a same-named macro unconditionally and give every printer an implementation, even if a no-op.
 
 ### `HEAT_SOAK`

@@ -70,7 +70,7 @@
 		"50",
 		"12"
 	],
-	"machine_start_gcode": "; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n\nM104 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nM140 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature] CHAMBER=[chamber_temperature] CHAMBER_MINIMAL=[chamber_minimal_temperature] MATERIAL=[filament_type[initial_extruder]]",
+	"machine_start_gcode": "; https://docs.mainsail.xyz/slicers/orcaslicer/#layer-information\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n\nM104 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nM140 S0 ; Cancel slicer-injected heating so PRINT_START controls it\n\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature] CHAMBER=[chamber_temperature] CHAMBER_MINIMAL=[chamber_minimal_temperature] MATERIAL=[filament_type[initial_extruder]] BRIM=[brim_width]",
 	"manual_filament_change": "1",
 	"name": "Voron Switchwire 235 0.6 nozzle - VS.146",
 	"print_host": "https://klipper-vs-146.local:7130",
