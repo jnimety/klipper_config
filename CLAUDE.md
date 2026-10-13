@@ -55,6 +55,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Bases must live in `base/`: Orca can't resolve a user preset inheriting a sibling user preset ([OrcaSlicer#9536](https://github.com/OrcaSlicer/OrcaSlicer/issues/9536)), but loads `base/` first. One level only — a base can't inherit another base.
     - On save Orca drops any child value equal to its base's, so a base edit to a typically-per-printer setting can silently retune a printer.
     - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
+  - Bed type is ignored on both printers: the Voron vendor parents set `support_multi_bed_types: "0"`, so every plate uses `hot_plate_temp*` (shown as "Smooth PEI Plate / High Temp Plate") even though both actually run textured PEI.
+    - Don't set `default_bed_type` or other `*_plate_temp` keys; they're never read unless `support_multi_bed_types` is turned on.
   - VS.146 has a machine + process preset per nozzle (Revo swaps), selected in Orca by picking the printer:
     - 0.4: `Voron Switchwire 235 0.4 nozzle - VS.146` + `0.20mm Standard @Voron - VS.146`.
     - 0.6: `Voron Switchwire 235 0.6 nozzle - VS.146` (inherits Orca's 0.6 Switchwire) + `0.30mm Standard 0.6 nozzle @Voron - VS.146`.
