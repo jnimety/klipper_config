@@ -52,6 +52,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Bases set `compatible_printers` to a nonexistent printer so they're hidden from every printer's filament list; each child's own `compatible_printers` overrides it.
     - Children: `filament/<base> @VS.146.json` / `@V0.4432.json` — `inherits` the base, `compatible_printers` pins one printer, Orca PA always on, plus that printer's flow ratio and any other per-printer tweaks.
     - VS.146 has a child per nozzle: `@VS.146` (0.4) and `@VS.146 0.6`, so PA/max flow tuned on one nozzle never touches the other.
+    - Abrasive (GF/CF) filaments get only a `@VS.146 0.6` child — that's the hardened (ObXidian) nozzle.
+      - Their bases set `required_nozzle_HRC`; the 0.6 machine preset sets `nozzle_type: hardened_steel` so Orca doesn't warn. Revisit if a brass 0.6 is ever fitted.
+      - A new `filament_type` (e.g. `ASA-GF`) also needs an entry in `macros/mpc.cfg`'s `_SET_MPC_MATERIAL` table, or MPC keeps the previous material's params.
     - Bases must live in `base/`: Orca can't resolve a user preset inheriting a sibling user preset ([OrcaSlicer#9536](https://github.com/OrcaSlicer/OrcaSlicer/issues/9536)), but loads `base/` first. One level only — a base can't inherit another base.
     - On save Orca drops any child value equal to its base's, so a base edit to a typically-per-printer setting can silently retune a printer.
     - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
