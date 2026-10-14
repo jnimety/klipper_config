@@ -155,6 +155,9 @@ Pick the pattern that matches the macro being shared:
   - `[exclude_object]` polygons from Orca exclude the brim, so the default 10mm margin (squiggle 7.5–12.5mm out) overlapped a 10mm brim.
   - Every machine preset passes `BRIM=[brim_width]` to `PRINT_START` (default 0); it's the width even when brim type is "no brim", which only adds harmless distance.
   - The purge can't start forward of Y=3.5, so a brimmed part within ~20mm of the front edge can still overlap.
+- Every Orca machine preset (both printers) sets `bed_exclude_area` X0–60/Y0–12 so parts stay off the purge's default front-left spot (where it lands when the plate is full).
+  - Sized to the default-start footprint: X5–55 (10 periods × 5mm), Y3.5–8.5 (5mm amplitude) plus the ~1.75mm bead.
+  - Re-check it if `PURGE_LENGTH`/`PERIODS`/`PERIOD_LENGTH`/`AMPLITUDE` on the `print_start.cfg` call change.
 - Both printers set `max_extrude_cross_section: 1.1` (mm²) explicitly, sized to clear that purge without the macro's self-correction.
   - The stock `LINE_HEIGHT=0.6` needs roughly 1.05 mm² for a 50mm purge at default squiggle geometry, so no `action_respond_info` correction fires.
   - Replaced vs-146's implicit 0.64 mm² Klipper default and v0-4432's earlier 0.8 mm².

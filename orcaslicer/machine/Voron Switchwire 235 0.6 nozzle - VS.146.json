@@ -1,6 +1,12 @@
 {
 	"bed_custom_model": "/Users/jnimety/workspace/klipper_config/orcaslicer/bed/ender3_bed_voron.stl",
 	"bed_custom_texture": "/Users/jnimety/workspace/klipper_config/orcaslicer/bed/bedtexture_235x235-dark.png",
+	"bed_exclude_area": [
+		"0x0",
+		"60x0",
+		"60x12",
+		"0x12"
+	],
 	"before_layer_change_gcode": "; BEFORE_LAYER_CHANGE\n; [layer_z]\nG92 E0\n\n",
 	"change_filament_gcode": "M600",
 	"deretraction_speed": [
