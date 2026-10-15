@@ -16,7 +16,10 @@ webcam_max_fps: 30
 # HdrMode=2 (sensor multi-exposure merge) instead -- made it worse, since
 # HDR tone-mapping lifts shadow/midtone brightness and can't fix lens
 # veiling glare from a source this bright; reverted.
-webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-hflip --camera-vflip"
+# max_fps locks camera-streamer's frame duration at 1/30s, capping AE's
+# shutter; FrameDurationLimits (applied after it) lets AE slow to 10fps in
+# low light, and AeExposureMode=2 (Long) favors shutter over gain.
+webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-options=\"FrameDurationLimits=33333,100000\" --camera-options=\"AeExposureMode=2\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
 # pipeline for this CSI camera was fully up. camera-streamer's one open
@@ -40,11 +43,10 @@ webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-strea
 # non-RPi-specific build, generic BCM4345/6 blob) as v0 rather than
 # leaving this host on the untested-but-working version.
 firmware_brcm80211_pin_version: "20250410-2"
-
 # Hardware PWM on gpio12 (PWM0, bed fan) and gpio13 (PWM1, case fan) --
 # steady edges instead of the host MCU's jittery software PWM, which hummed.
 boot_config_overlays:
   - "pwm-2chan,pin=12,func=4,pin2=13,func2=4"
 hard_pwm_exports:
-  - { chip: 0, channel: 0 }
-  - { chip: 0, channel: 1 }
+  - {chip: 0, channel: 0}
+  - {chip: 0, channel: 1}
