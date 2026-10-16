@@ -314,7 +314,9 @@ Deliberately tight, same meaning on both printers:
   - Read live via `printer.configfile.settings.extruder.max_extrude_only_distance`.
   - No safety margin needed: Klipper's check in `kinematics/extruder.py` is strictly-greater-than.
   - Neither printer's `_CLIENT_VARIABLE` thinks about chunking; `MAX_CHUNK` exists only as an override.
-  - klipper-vs-146: `filament_load_length: 499.5` (several sub-100mm moves). klipper-v0-4432: `filament_load_length: 30.0` (one move).
+  - klipper-vs-146: `filament_load_length: 100.0` (two moves at Klipper's default 50mm `max_extrude_only_distance`). klipper-v0-4432: `filament_load_length: 30.0` (one move).
+- vs-146's `filament_prime_length` is 30mm (was 65mm): its load is 15mm shorter than its unload retract (100 vs 115), so ~15mm of prime only refills that gap.
+  - The rest just confirms flow; Orca's prime tower does the color flushing on multi-color M600 prints (one M600 per layer, since Orca alternates which filament prints first).
 - `RETRACT_AFTER`/`RETRACT_SPEED` default to `_CLIENT_VARIABLE`'s `retract`/`speed_retract` — the same fast retract `PAUSE` does when parking.
   - So pause→load→resume ends at the same net E as plain pause→resume on both printers; `RESUME`'s `_CLIENT_EXTRUDE` then un-retracts `unretract`.
   - Pass `RETRACT_AFTER=0` to disable.
