@@ -173,7 +173,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
   - vs-146 overrides it — see [klipper-vs-146 fans](#klipper-vs-146-fans-big-p4ppa-hat).
 - `HEAT_SOAK` — see below.
 - `G28 Z` re-home after the soak, since frame thermal expansion can drift the cold Z reference taken earlier in the macro.
-  - Safe on both: vs-146's `[safe_z_home]` moves to its safe XY point first; v0-4432's `[homing_override]` treats `G28 Z` as Z-only.
+  - Safe on both: each printer's `[safe_z_home]` moves to its safe XY point first.
 - `CHECK_BED_LEVEL`
   - klipper-vs-146: heats nozzle to 150C, homes Z via Cartographer's `CARTOGRAPHER_TOUCH_HOME` for a real Z0, then calibrates a fresh adaptive mesh.
   - klipper-v0-4432: no-op (no probe).
