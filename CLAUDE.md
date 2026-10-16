@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Layout
 
-- `printers/klipper-vs-146/` — SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN (RP2040) toolhead, corexz kinematics, Cartographer V3 probe, Fluidd UI.
+- `printers/klipper-vs-146/` — SKR Mini E3 mainboard + Stealthburner/EBB SB2209 CAN (RP2040) toolhead, corexz kinematics, Cartographer V3 probe, Mainsail UI.
 - `printers/klipper-v0-4432/` — Voron 0.2 (SKR Pico + LDO Picobilical toolhead board), corexy kinematics, sensorless XY homing, Mainsail UI.
 - `macros/` — shared, hardware-agnostic gcode macros and client-macro config (see [Shared macros](#shared-macros-macros)):
   - `debug.cfg` — `DUMP_PARAMETERS`
@@ -116,7 +116,6 @@ Pick the pattern that matches the macro being shared:
 - The Alex Zellner `_CLIENT_VARIABLE`-based client macro pack: runout-sensor awareness, idle-timeout restore, temp restore, configurable park/retract, pause-at-layer.
 - Both printers use it for `PAUSE`/`RESUME`/`CANCEL_PRINT` rather than hand-rolling their own.
   - Its `RESUME`/`PAUSE`/`CANCEL_PRINT` chain from the `[pause_resume]` built-ins via `rename_existing: RESUME_BASE` etc.
-  - It's UI-agnostic — klipper-vs-146 still uses Fluidd as its web UI.
 - **Do not hand-edit it.** It stays a clean copy of upstream.
   - Upstream: [mainsail-crew/mainsail-config](https://github.com/mainsail-crew/mainsail-config)'s `client.cfg`.
   - Upstream renamed it from `mainsail.cfg` in 2023; this repo keeps the old filename since both printers' includes/docs reference it.
@@ -264,7 +263,7 @@ Deliberately tight, same meaning on both printers:
   - a plain `RESPOND` (console)
   - a `RESPOND PREFIX=tgnotify` (new Telegram message), or `PREFIX=tgnotify_status` with `STATUS_ONLY=1` (edits the live status message), via moonraker-telegram-bot
     - The bot reads the gcode response stream, so the prefixed line always reaches the console too, doubling every message.
-    - Each printer's web UI hides it with a `^tgnotify` console filter (Fluidd on vs-146: Settings → Console; Mainsail on v0-4432: Settings → Console → Console Filters).
+    - Each printer's Mainsail hides it with a `^tgnotify` console filter (Settings → Console → Console Filters).
     - Filters are client-side only (the bot still sees the line) and live in Moonraker's database, not this repo, so re-add them by hand after a UI/database reset.
   - an `M117` (LCD status line)
 - Because messaging lives in `_LED_SET`, it only fires where an override actually has a light; the no-op defaults say nothing.
