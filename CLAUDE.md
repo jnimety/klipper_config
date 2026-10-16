@@ -410,8 +410,18 @@ Deliberately tight, same meaning on both printers:
 - These are included in one block **after** every `macros/*.cfg` include. Keep that order — Klipper merges same-named macros last-wins, so otherwise a shared no-op default silently replaces the real override.
 - New printer-specific macros go in one of these files (or a new topic file in that block), not inline in `printer.cfg`.
 - Macro-like gcode inside a hardware section (e.g. vs-146's `[filament_motion_sensor]` `runout_gcode`) stays with its section.
-- `moonraker.conf` — CORS/trusted clients, update_manager entries (moonraker-telegram-bot and `klipper_tmc_autotune` on both).
+- `moonraker.conf` — CORS/trusted clients, update_manager entries (this repo, moonraker-telegram-bot and `klipper_tmc_autotune` on both).
 - `telegram.conf` — moonraker-telegram-bot config; points at a gitignored `secrets.conf` on the printer host for credentials.
+
+### Config updates (`[update_manager klipper_config]`)
+
+- Both `moonraker.conf`s track this repo's `~/klipper_config` checkout, so Mainsail's update manager can pull config changes and restart klipper + moonraker.
+- `origin` is the SSH URL because Moonraker requires it to match the checkout's remote exactly; fetches use each host's own GitHub deploy key.
+- Moonraker refuses the update while printing.
+- `moonraker-telegram-bot` isn't in `managed_services` (it'd need a `moonraker.asvc` entry), so a `telegram.conf` change still needs a manual bot restart.
+- `SAVE_CONFIG` and Mainsail editor saves modify tracked files on the host, so Moonraker flags the repo "dirty" and a pull can conflict.
+  - Commit those changes back (or reset them) before updating from the UI.
+- Coexists with ansible's `klipper_config_repo` role, which pulls the same branch; that role is still the bootstrap path.
 
 ### Moonraker HTTPS / nginx
 

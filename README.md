@@ -60,7 +60,7 @@ Each host gets a single clone of this repo, with `~/printer_data/config` symlink
 
 Do one printer at a time — whichever isn't mid-print — with a soak period before touching the second.
 
-For an already-bootstrapped host (symlink already in place), re-running `ansible/site.yml` covers routine config-only pushes on its own: its `klipper_config_repo` role pulls this repo and restarts klipper + moonraker automatically whenever the pull actually changed something, refusing the restart if a print is active (see `ansible/README.md`). This runbook is still the manual fallback — for the initial symlink swap, or when applying a pulled change by hand without ansible.
+For an already-bootstrapped host (symlink already in place), the simplest routine path is Mainsail's update manager: each `moonraker.conf` has an `[update_manager klipper_config]` entry, so new commits show up there and updating pulls and restarts klipper + moonraker (refused while printing). Alternatively, re-running `ansible/site.yml` covers routine config-only pushes on its own: its `klipper_config_repo` role pulls this repo and restarts klipper + moonraker automatically whenever the pull actually changed something, refusing the restart if a print is active (see `ansible/README.md`). This runbook is still the manual fallback — for the initial symlink swap, or when applying a pulled change by hand without ansible.
 
 ## OrcaSlicer presets
 

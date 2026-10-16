@@ -43,7 +43,9 @@ per-printer toggle.
   is the one exception: that checkout is the live config, not a
   software release to pin, so it pulls on every run and restarts
   klipper/moonraker when the pull actually changes something (print-safety
-  checked — see its role's handlers).
+  checked — see its role's handlers). Moonraker also tracks it via
+  `[update_manager klipper_config]`, so routine config updates can come
+  from Mainsail instead; this role remains the bootstrap path.
 - **Provide `secrets.conf`.** It's gitignored and host-local by design
   (see the repo `CLAUDE.md`'s "Secrets" section). Copy it forward
   manually, same as the main README's deploy runbook already describes.
