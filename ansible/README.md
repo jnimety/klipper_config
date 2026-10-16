@@ -199,14 +199,6 @@ ansible-playbook site.yml --check --diff          # dry run
 - SSH access to `<hostname>.local` as `jnimety` with a key already
   authorized (`ssh-copy-id`), and passwordless sudo on that account.
 
-### Prerequisites on each host
-
-- The `jnimety` user needs its own SSH key authorized as a GitHub deploy
-  key for `git@github.com:jnimety/klipper_config.git` (or override
-  `klipper_config_repo_url` in `group_vars/all.yml` to an HTTPS URL with
-  embedded credentials, or a token via `~/.git-credentials`, if you'd
-  rather not manage per-host deploy keys).
-
 ### After the first run
 
 - Enabling SPI may require a reboot before `/dev/spidev0.0` appears —

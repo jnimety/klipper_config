@@ -435,7 +435,8 @@ Deliberately tight, same meaning on both printers:
 ### Config updates (`[update_manager klipper_config]`)
 
 - Both `moonraker.conf`s track this repo's `~/klipper_config` checkout, so Mainsail's update manager can pull config changes and restart klipper + moonraker.
-- `origin` is the SSH URL because Moonraker requires it to match the checkout's remote exactly; fetches use each host's own GitHub deploy key.
+- `origin` is the public HTTPS URL, so hosts fetch without any GitHub key; Moonraker requires it to match the checkout's remote exactly.
+  - It was SSH, but the hosts had no key: fetches only worked from a login shell with a forwarded agent, so Moonraker's service reported the repo INVALID.
 - Moonraker refuses the update while printing.
 - `moonraker-telegram-bot` isn't in `managed_services` (it'd need a `moonraker.asvc` entry), so a `telegram.conf` change still needs a manual bot restart.
 - `SAVE_CONFIG` and Mainsail editor saves modify tracked files on the host, so Moonraker flags the repo "dirty" and a pull can conflict.

@@ -49,7 +49,7 @@ Each printer directory has a `macros` symlink pointing at the top-level `macros/
 
 Each host gets a single clone of this repo, with `~/printer_data/config` symlinked into the printer's subdirectory (Klipper/Moonraker require `printer.cfg` at that fixed path, so the printer-specific directory has to be swapped in directly rather than the whole repo).
 
-1. `git clone git@github.com:jnimety/klipper_config.git ~/klipper_config` (or `git -C ~/klipper_config pull` if already present).
+1. `git clone https://github.com/jnimety/klipper_config.git ~/klipper_config` (or `git -C ~/klipper_config pull` if already present).
 2. Copy forward host-local gitignored files: `cp ~/printer_data/config/secrets.conf ~/klipper_config/printers/<name>/secrets.conf`.
 3. `sudo systemctl stop klipper moonraker`.
 4. `mv ~/printer_data/config ~/printer_data/config.bak-$(date +%Y%m%d)` (safety net — the backup/`.bkp` files inside don't need to be preserved, Klipper/Moonraker regenerate them).
