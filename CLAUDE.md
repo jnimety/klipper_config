@@ -314,9 +314,26 @@ Deliberately tight, same meaning on both printers:
   - Read live via `printer.configfile.settings.extruder.max_extrude_only_distance`.
   - No safety margin needed: Klipper's check in `kinematics/extruder.py` is strictly-greater-than.
   - Neither printer's `_CLIENT_VARIABLE` thinks about chunking; `MAX_CHUNK` exists only as an override.
-  - klipper-vs-146: `filament_load_length: 100.0` (two moves at Klipper's default 50mm `max_extrude_only_distance`). klipper-v0-4432: `filament_load_length: 30.0` (one move).
-- vs-146's `filament_prime_length` is 30mm (was 65mm): its load is 15mm shorter than its unload retract (100 vs 115), so ~15mm of prime only refills that gap.
-  - The rest just confirms flow; Orca's prime tower does the color flushing on multi-color M600 prints (one M600 per layer, since Orca alternates which filament prints first).
+  - Neither `printer.cfg` sets `max_extrude_only_distance`, so Klipper's default 50mm applies: vs-146's 78mm load is two moves, v0-4432's 50mm load is one.
+- Load/prime/unload lengths are measured from toolhead CAD (FreeCAD on upstream STEP files), referenced to the extruder's gear pinch point:
+
+  |                              | gear pinch → nozzle tip | pinch → top of heater core |
+  | ---------------------------- | ----------------------- | -------------------------- |
+  | vs-146 (G2E + Stealthburner) | 100.4mm                 | 81.1mm                     |
+  | v0-4432 (Mini Stealthburner) | 72.3mm                  | 53.0mm                     |
+  - Both printers run a Revo Voron. Its heater core tops out 19.3mm above the nozzle tip.
+  - Both use RapidChange nozzles. The CAD nozzle is 41.4mm long, and calipers on the real ones read 41.0–41.4mm, so the tip height carries over.
+  - Sources:
+    - vs-146: JaredC01/Galileo2's `Galileo 2 Extruder.step` plus VoronDesign/Voron-Stealthburner's `Stealthburner_CW2_Assembly.step`. Both share an identical X carriage frame (Z 9.9–78.9).
+    - v0-4432: VoronDesign/Voron-0's `V0.2R1_Master_Assembly_STEP.zip`.
+  - `filament_load_length` = pinch → 3mm short of the heater core. The fast load stays in the cold path, and the margin covers filament pushed past the gears on insertion.
+  - `filament_prime_length` (32mm on both) = the remaining ~22mm to the tip + a 10mm purge, at the slow prime speed.
+    - Only ~10mm leaves the nozzle. That's enough to confirm flow, since Orca's prime tower does the color flushing on multi-color M600 prints (one M600 per layer, since Orca alternates which filament prints first).
+  - `filament_unload_retract_length` = pinch → tip + 5mm (vs-146 105, v0-4432 77), so the shaped tip ends just above the gears.
+    - The unload purge has already filled the path to the tip, and `_TIP_SHAPING` is net-zero E.
+  - New filament starts at the gears, not where the unload left the old tip, so the unload retract and the load length are independent. An older "prime refills the retract gap" rationale was wrong.
+  - Re-derive these if the extruder, hotend, or nozzle family changes.
+
 - `RETRACT_AFTER`/`RETRACT_SPEED` default to `_CLIENT_VARIABLE`'s `retract`/`speed_retract` — the same fast retract `PAUSE` does when parking.
   - So pause→load→resume ends at the same net E as plain pause→resume on both printers; `RESUME`'s `_CLIENT_EXTRUDE` then un-retracts `unretract`.
   - Pass `RETRACT_AFTER=0` to disable.
