@@ -1,0 +1,72 @@
+{
+	"chamber_minimal_temperature": [
+		"45"
+	],
+	"chamber_temperature": [
+		"60"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"compatible_printers": [
+		"Filament base preset - select a printer child"
+	],
+	"default_filament_colour": [
+		"#1A1A1A"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"filament_density": [
+		"1.21"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_settings_id": [
+		"Ambrosia PC-CF Black"
+	],
+	"filament_type": [
+		"PC-CF"
+	],
+	"filament_vendor": [
+		"Ambrosia"
+	],
+	"from": "User",
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"inherits": "Generic PC @System",
+	"name": "Ambrosia PC-CF Black",
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"250"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"temperature_vitrification": [
+		"120"
+	],
+	"version": "2.4.0.3"
+}
