@@ -19,7 +19,10 @@ webcam_max_fps: 30
 # max_fps locks camera-streamer's frame duration at 1/30s, capping AE's
 # shutter; FrameDurationLimits (applied after it) lets AE slow to 10fps in
 # low light, and AeExposureMode=2 (Long) favors shutter over gain.
-webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-options=\"FrameDurationLimits=33333,100000\" --camera-options=\"AeExposureMode=2\" --camera-hflip --camera-vflip"
+# Auto AWB can't neutralize the near-monochrome blue print light (renders
+# solid blue; presets barely differ), so fixed ColourGains (red up, blue
+# down) plus Saturation=0.4 recover detail; orange phases just read warm.
+webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-options=\"FrameDurationLimits=33333,100000\" --camera-options=\"AeExposureMode=2\" --camera-options=\"ColourGains=3.5,0.7\" --camera-options=\"Saturation=0.4\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
 # pipeline for this CSI camera was fully up. camera-streamer's one open
