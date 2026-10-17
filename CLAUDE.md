@@ -238,8 +238,11 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
 
 - Both printers have a light and override all seven in their own `status_leds.cfg` by plain redefinition (no `rename_existing`).
 - Each override calls `_LED_SET NAME=<color> LED=<their light> MSG=...`, forwarding the caller's `MSG` (or a static one where the call site can't pass params).
-  - klipper-vs-146: `LED=enclosure` (RGB; the unused `WHITE` component is harmless to pass).
+  - klipper-vs-146: `LED=enclosure,hotend_rgb:1:0.05` (enclosure is RGB; the unused `WHITE` component is harmless to pass).
+    - `hotend_rgb:1:0.05` is the Stealthburner logo pixel only, at 5% of the enclosure's color — the user wants it dim.
+    - Pixels 2-3 (nozzle) are full white via `initial_WHITE: 1.0` and are never addressed afterward; `[delayed_gcode _HOTEND_LOGO_INIT]` dims the logo at boot.
   - klipper-v0-4432: `LED=bed_light` (RGBW).
+- Each comma-separated `LED=` entry may be `name[:index[:brightness]]`: index targets one pixel of a chain (others keep their color), brightness multiplies `_LED_COLOR`'s `BRIGHTNESS`, so the attention pulse scales with it.
 - Passing `LED=` as a param is what keeps `_LED_SET` a single shared macro instead of per-printer copies.
 - Forwarding `MSG` lets one override (e.g. `_ATTENTION_NOTIFY`) say something different for each caller.
 
@@ -258,7 +261,7 @@ Deliberately tight, same meaning on both printers:
 
 - `_LED_SET` is the single private entry point (in `notify.cfg`; the leading underscore hides it from the web UI's macro panel).
 - It always cancels any in-progress pulse first, then sets a solid color via `_LED_COLOR`.
-  - `_LED_COLOR` is the lower-level macro holding the name→RGBW lookup and the `SET_LED` call.
+  - `_LED_COLOR` is the lower-level macro holding the name→RGBW lookup, the `name:index:brightness` parsing, and the `SET_LED` call.
 - With an optional `MSG`, it also emits:
   - a plain `RESPOND` (console)
   - a `RESPOND PREFIX=tgnotify` (new Telegram message), or `PREFIX=tgnotify_status` with `STATUS_ONLY=1` (edits the live status message), via moonraker-telegram-bot
