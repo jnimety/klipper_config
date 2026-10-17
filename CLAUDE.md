@@ -467,6 +467,9 @@ Deliberately tight, same meaning on both printers:
   - `~/klipper/.config` temporarily set to `CONFIG_MACH_LINUX=y` for one `make flash` (installs `/usr/local/bin/klipper_mcu`, restarts the service), then restored to the RP2040 toolhead build so a future toolhead rebuild doesn't target the wrong architecture.
 - Per LDO's guide, keep the FFC unplugged except during `ACCELEROMETER_QUERY`/`SHAPER_CALIBRATE`.
   - Safe because Klipper's `adxl345` only probes the chip ID when a measurement starts, not at connect, so the printer reaches "ready" either way.
+- `pcb_fan` (gpio20) is a watermark `temperature_fan` on `temperature_host` (60C, ±5C), not a `controller_fan`.
+  - As a `controller_fan` (steppers + extruder) it switched off after `PRINT_END`, and the Pi hit 85C and throttled (`get_throttled=0xe0006`).
+  - Cause: `camera-streamer` keeps the Pi at ~50% CPU while idle, plus residual heat from the cooling bed.
 
 ### klipper-vs-146 fans (Big P4ppa HAT)
 
