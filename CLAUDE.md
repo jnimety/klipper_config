@@ -199,8 +199,8 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 - All brush/bucket geometry and wipe tuning lives as `variable_*` on `CLEAN_NOZZLE_PARK` alone; `CLEAN_NOZZLE` reads it via `printer["gcode_macro CLEAN_NOZZLE_PARK"]`.
 - Both refuse to run unhomed and wrap themselves in `SAVE/RESTORE_GCODE_STATE`.
 - Both always raise to `travel_z` before any XY travel.
-  - The brush top is at bed level, so scrub depth is below Z0.
-  - The bracket sits below the bed, so the scrub drags straight from the brush into the hole at brush depth.
+  - The brush is the tallest part of the bracket; its bristle tops sit at Z4.5.
+  - The scrub drags from the brush to the hole, rising from brush depth to `bucket_z` (Z4) so the nozzle flat clears the brush edge over the hole.
 - `CLEAN_NOZZLE` drops accel to `wipe_accel` for the scrub and restores it afterward (gcode state doesn't cover accel).
 - The macro is this repo's own, drawing on the Voron Decontaminator, Klippain's `CLEAN_NOZZLE`, and the brush author's park-while-heating idea.
 
