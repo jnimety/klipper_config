@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `park.cfg` — `PARK`
   - `heat_soak.cfg` — `HEAT_SOAK`
   - `temperature_wait.cfg` — `TEMPERATURE_WAIT_WITH_TIMEOUT`
-  - `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`/pulse machinery
+  - `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`
   - `filament.cfg` — `LOAD_FILAMENT`, `UNLOAD_FILAMENT`, `M600`, `_TIP_SHAPING`
   - `mainsail.cfg` — vendored client macro pack (`PAUSE`/`RESUME`/`CANCEL_PRINT` etc.)
 - Each printer directory has a `macros` symlink to `macros/`, included as `[include macros/<file>.cfg]`.
@@ -216,7 +216,7 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
     - At the very top, before homing/heating: `MSG="🖨️ Print started! Hotend: {target_extruder}c, Bed: {target_bed}c"`.
     - Right before `CHECK_BED_LEVEL`: `MSG="🔍 Bed level check"`.
     - Right before `SQUIGGLY_PURGE`: `MSG="🚀 Printer goes brr"` — restores blue, since the orange heating calls in between would otherwise leave it orange for the whole print.
-  - klipper-vs-146's `SCREWS_TILT_CALCULATE` also calls it at the start of every probe pass, so lights go solid blue while probing instead of freezing a leftover attention pulse mid-fade.
+  - klipper-vs-146's `SCREWS_TILT_CALCULATE` also calls it at the start of every probe pass, so lights go solid blue while probing instead of carrying a leftover attention pulse.
 - `_HEAT_SOAK_NOTIFY` — orange. Anywhere the printer is actively heating something, despite the name.
   - From `PRINT_START`: `MSG="🔥 Bed: {target_bed}c"` and `MSG="🎯 Hotend: {target_extruder}c"`.
   - From `HEAT_SOAK` for the chamber-soak wait.
@@ -242,7 +242,8 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
     - `hotend_rgb:1:0.05` is the Stealthburner logo pixel only, at 5% of the enclosure's color — the user wants it dim.
     - Pixels 2-3 (nozzle) are full white via `initial_WHITE: 1.0` and are never addressed afterward; `[delayed_gcode _HOTEND_LOGO_INIT]` dims the logo at boot.
   - klipper-v0-4432: `LED=bed_light` (RGBW).
-- Each comma-separated `LED=` entry may be `name[:index[:brightness]]`: index targets one pixel of a chain (others keep their color), brightness multiplies `_LED_COLOR`'s `BRIGHTNESS`, so the attention pulse scales with it.
+- Each comma-separated `LED=` entry may be `name[:index[:brightness]]`: index targets one pixel of a chain (others keep their color), brightness scales the color.
+  - It doesn't reach effects: an effect's palette applies to every LED in it, so a dimmed pixel needs its own effect (vs-146's `attention_logo`).
 - Passing `LED=` as a param is what keeps `_LED_SET` a single shared macro instead of per-printer copies.
 - Forwarding `MSG` lets one override (e.g. `_ATTENTION_NOTIFY`) say something different for each caller.
 
@@ -260,7 +261,7 @@ Deliberately tight, same meaning on both printers:
 #### `_LED_SET` and messaging
 
 - `_LED_SET` is the single private entry point (in `notify.cfg`; the leading underscore hides it from the web UI's macro panel).
-- It always cancels any in-progress pulse first, then sets a solid color via `_LED_COLOR`.
+- It always runs `STOP_LED_EFFECTS` first (a running effect overrides `SET_LED`), then sets a solid color via `_LED_COLOR`, or with `EFFECT=` starts those effects instead.
   - `_LED_COLOR` is the lower-level macro holding the name→RGBW lookup, the `name:index:brightness` parsing, and the `SET_LED` call.
 - With an optional `MSG`, it also emits:
   - a plain `RESPOND` (console)
@@ -273,22 +274,18 @@ Deliberately tight, same meaning on both printers:
 - This replaced ad hoc `RESPOND PREFIX=tgnotify` lines next to individual `*_NOTIFY` calls (`PRINT_END`, `SCREWS_TILT_CALCULATE`, `M600`).
 - Every message leads with an emoji for at-a-glance scanning (purely cosmetic).
 
-#### Pulse animation (`PULSE=1`)
+#### Effects (`EFFECT=`)
 
-- `_LED_SET ... PULSE=1` (used by both printers' `_ATTENTION_NOTIFY`) gives a slow breathing fade instead of a solid color.
-- Gcode macros can't block for the life of a pause, so the animation lives in `[delayed_gcode _LED_PULSE]`.
-  - Self-rescheduling via `UPDATE_DELAYED_GCODE`, fires every 0.15s, `initial_duration: 0` (dormant until triggered).
-  - Ramps `_LED_COLOR`'s `BRIGHTNESS` between 0.2 and 1.0 over a 24-step triangle wave (~7s per breath), starting at full brightness and fading down.
-  - The 0.2 floor and bright start exist because a tick parked behind a long command (e.g. back-to-back `SCREWS_TILT_CALCULATE`) freezes the light wherever it was; a 0-floor pulse frozen near the bottom looked like the light had turned off.
-- State persists between ticks in `_LED_PULSE_STATE`, a `[gcode_macro]` used purely as variable storage (which LED, color, step/direction, `active` flag).
-  - Set via `SET_GCODE_VARIABLE`, read via `printer["gcode_macro _LED_PULSE_STATE"]` — `[delayed_gcode]` can't receive params.
-- The `[delayed_gcode]` body only calls `_LED_PULSE_TICK`, which does work only while `active` is set (`_LED_SET` sets 1 for a pulse, 0 for any solid color).
-- Why the `active` indirection — a race in Klipper's `delayed_gcode.py`:
-  - When the timer fires it sets `inside_timer`, renders its template **immediately**, then blocks on the gcode mutex.
-  - A long command like `SCREWS_TILT_CALCULATE` holds the mutex, so a tick is almost always parked behind it.
-  - While parked, `UPDATE_DELAYED_GCODE DURATION=0` only clears `repeat`; it doesn't cancel the timer.
-  - The parked tick then replayed its stale script (ending in a fresh `DURATION=0.15`) and pulsed forever over the new solid color.
-  - A `[gcode_macro]` renders at dispatch time, after the mutex is acquired, so `_LED_PULSE_TICK` sees the current `active` and declines to reschedule.
+- Animation uses [klipper-led_effect](https://github.com/julianschill/klipper-led_effect), installed on both printers by the ansible `klipper_led_effect` role (`~/klipper-led_effect`, symlinked into `klippy/extras/`).
+  - `notify.cfg`'s `STOP_LED_EFFECTS` makes it a hard dependency of every printer that includes it.
+- `_LED_SET ... EFFECT=a,b` (used by both printers' `_ATTENTION_NOTIFY`) starts those `[led_effect]`s instead of a solid color.
+- Effects name their LEDs, so they're printer-local, defined in each `status_leds.cfg`; passing names as a param keeps `_LED_SET` shared, same as `LED=`.
+  - klipper-v0-4432: `attention_bed_light`. klipper-vs-146: `attention_enclosure` + `attention_logo` (the logo pixel at 5%).
+- Attention is a 7s `breathing` layer added over a `static` floor, so it swings 0.2–1.0 of yellow; the floor keeps it from reading as "off".
+  - Palettes repeat `_LED_COLOR`'s yellow `(1,1,0)` by hand — change both together.
+- led_effect animates from the reactor, not the gcode queue, so it keeps breathing through long commands like `SCREWS_TILT_CALCULATE`.
+- History: it replaced a self-rescheduling `[delayed_gcode _LED_PULSE]` driving `_LED_COLOR`.
+  - Its ticks parked behind the gcode mutex, freezing the light mid-fade, and a parked tick replayed its stale template past `UPDATE_DELAYED_GCODE DURATION=0` and pulsed forever over the next solid color (worked around with an `active` flag re-read by a `[gcode_macro]` tick).
 
 #### Adding a status point
 
@@ -432,7 +429,7 @@ Deliberately tight, same meaning on both printers:
 - These are included in one block **after** every `macros/*.cfg` include. Keep that order — Klipper merges same-named macros last-wins, so otherwise a shared no-op default silently replaces the real override.
 - New printer-specific macros go in one of these files (or a new topic file in that block), not inline in `printer.cfg`.
 - Macro-like gcode inside a hardware section (e.g. vs-146's `[filament_motion_sensor]` `runout_gcode`) stays with its section.
-- `moonraker.conf` — CORS/trusted clients, update_manager entries (this repo, moonraker-telegram-bot and `klipper_tmc_autotune` on both).
+- `moonraker.conf` — CORS/trusted clients, update_manager entries (this repo, moonraker-telegram-bot, `klipper_tmc_autotune` and `led_effect` on both).
 - `telegram.conf` — moonraker-telegram-bot config; points at a gitignored `secrets.conf` on the printer host for credentials.
 
 ### Config updates (`[update_manager klipper_config]`)

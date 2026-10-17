@@ -4,9 +4,9 @@ Provisions a fresh Raspberry Pi 4 with everything a printer in this repo
 needs _before_ `~/printer_data/config` gets symlinked to its
 `printers/<hostname>` directory and Klipper/Moonraker take over — the
 Klipper/Moonraker/webcam software stack, this repo's clone + symlink
-swap, and the three Moonraker-managed plugins already referenced in each
+swap, and the four Moonraker-managed plugins already referenced in each
 printer's `moonraker.conf` (`moonraker-telegram-bot`,
-`klipper_tmc_autotune`, Klippain Shake&Tune).
+`klipper_tmc_autotune`, Klippain Shake&Tune, `klipper-led_effect`).
 
 There's no web UI role: Mainsail/Fluidd run centrally off-host (on the
 user's k8s cluster), talking to each printer's Moonraker over what used
@@ -161,8 +161,9 @@ One role per concern, run in dependency order from `site.yml`:
    rather than a pair of per-host toggles — every printer should look
    identical here.
 
-9. `moonraker_telegram_bot`, `klipper_tmc_autotune`, `shaketune` — the
-   three plugins already referenced in each printer's `moonraker.conf`.
+9. `moonraker_telegram_bot`, `klipper_tmc_autotune`, `shaketune`,
+   `klipper_led_effect` — the four plugins already referenced in each
+   printer's `moonraker.conf`.
 10. `firewall` — runs last. Installs `nftables` and renders
     `/etc/nftables.conf` with a default-drop `input` chain (logged, rate
     limited) that only opens SSH, mDNS, DHCPv4 client replies, `443`, and
@@ -219,7 +220,8 @@ ansible-playbook site.yml --check --diff          # dry run
   (the `[update_manager crowsnest]` block, and `crowsnest.conf`'s
   `mode`/`device`/`resolution`/`max_fps`/`no_proxy`/`custom_flags`) —
   the same tracked-and-occasionally-diffed pattern as the
-  `klipper_tmc_autotune`/`Klippain-ShakeTune` `moonraker.conf` blocks.
+  `klipper_tmc_autotune`/`Klippain-ShakeTune`/`led_effect` `moonraker.conf`
+  blocks.
   A fresh bootstrap should converge to a clean `git status` with no
   further commit needed; if you change `webcam_*` in `host_vars` and
   rerun, expect a real diff to review and commit. Note that crowsnest's

@@ -20,6 +20,7 @@ crowsnest_repo_url: https://github.com/mainsail-crew/crowsnest.git
 moonraker_telegram_bot_repo_url: https://github.com/nlef/moonraker-telegram-bot.git
 klipper_tmc_autotune_repo_url: https://github.com/andrewmcgr/klipper_tmc_autotune.git
 klippain_shaketune_repo_url: https://github.com/Frix-x/klippain-shaketune.git
+klipper_led_effect_repo_url: https://github.com/julianschill/klipper-led_effect.git
 
 # This repo itself -- cloned to the host and symlinked into
 # ~/printer_data/config, same as the manual runbook in ../README.md.

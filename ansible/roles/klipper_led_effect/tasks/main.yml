@@ -1,0 +1,19 @@
+---
+- name: Clone klipper-led_effect
+  ansible.builtin.include_role:
+    name: git_clone
+  vars:
+    git_clone_repo: "{{ klipper_led_effect_repo_url }}"
+    git_clone_dest: "{{ ansible_facts['env'].HOME }}/klipper-led_effect"
+    git_clone_version: master
+
+# Not become:true -- same as klipper_tmc_autotune, script rejects EUID 0
+# and sudos internally for stopping/restarting klipper. Its moonraker.conf
+# updater step skips an existing section, so it's a no-op here since
+# [update_manager led_effect] is already committed in both printers'
+# moonraker.conf.
+- name: Run klipper-led_effect's installer
+  ansible.builtin.command: ./install-led_effect.sh
+  args:
+    chdir: "{{ ansible_facts['env'].HOME }}/klipper-led_effect"
+    creates: "{{ klipper_home }}/klippy/extras/led_effect.py"

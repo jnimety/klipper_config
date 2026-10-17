@@ -13,4 +13,5 @@
     - moonraker_telegram_bot
     - klipper_tmc_autotune
     - shaketune
+    - klipper_led_effect
     - firewall
