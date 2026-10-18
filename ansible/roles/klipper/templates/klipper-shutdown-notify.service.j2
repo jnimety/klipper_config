@@ -1,0 +1,15 @@
+[Unit]
+Description=Set printer LEDs to "safe to power off" before Klipper stops
+# stop order is the reverse of start, so ExecStop runs while klipper, moonraker and the bot are still up
+After=klipper.service moonraker.service moonraker-telegram-bot.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+# poweroff/halt only, so a reboot doesn't claim it's safe to cut power
+ExecStop=/bin/sh -c 'systemctl list-jobs | grep -Eq "(poweroff|halt)[.]target" && curl -s --max-time 5 -X POST "http://localhost:{{ moonraker_port }}/printer/gcode/script?script=_SHUTDOWN_NOTIFY" || true'
+TimeoutStopSec=10
