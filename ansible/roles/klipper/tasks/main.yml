@@ -108,20 +108,3 @@
     state: started
     daemon_reload: true
   become: true
-
-# Turns the LEDs purple on poweroff (_SHUTDOWN_NOTIFY). Only its ExecStop
-# does anything, so it must be started (active) for that to run at shutdown.
-- name: Install klipper-shutdown-notify.service
-  ansible.builtin.template:
-    src: klipper-shutdown-notify.service.j2
-    dest: /etc/systemd/system/klipper-shutdown-notify.service
-    mode: "0644"
-  become: true
-
-- name: Enable and start klipper-shutdown-notify.service
-  ansible.builtin.systemd:
-    name: klipper-shutdown-notify.service
-    enabled: true
-    state: started
-    daemon_reload: true
-  become: true

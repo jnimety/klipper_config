@@ -123,10 +123,7 @@ One role per concern, run in dependency order from `site.yml`:
    refusing to if a print is active, same idle check as the `klipper`
    role's own handlers.
 5. `klipper` — clones Klipper, builds `klippy-env`, installs
-   `klipper.service` + `klipper-mcu.service`, plus
-   `klipper-shutdown-notify.service`, whose `ExecStop` runs
-   `_SHUTDOWN_NOTIFY` (LEDs purple) on poweroff/halt, just before Klipper
-   stops, as a "safe to cut power" signal.
+   `klipper.service` + `klipper-mcu.service`.
 6. `moonraker` — clones Moonraker, runs its official installer.
 7. `crowsnest` — webcam streaming (every printer gets one now). Backend
    and camera settings (`webcam_mode`/`webcam_device`/`webcam_resolution`/

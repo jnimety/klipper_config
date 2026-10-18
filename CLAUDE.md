@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `park.cfg` — `PARK`
   - `heat_soak.cfg` — `HEAT_SOAK`
   - `temperature_wait.cfg` — `TEMPERATURE_WAIT_WITH_TIMEOUT`
-  - `notify.cfg` — no-op defaults for all eight `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`
+  - `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`
   - `filament.cfg` — `LOAD_FILAMENT`, `UNLOAD_FILAMENT`, `M600`, `_TIP_SHAPING`
   - `mainsail.cfg` — vendored client macro pack (`PAUSE`/`RESUME`/`CANCEL_PRINT` etc.)
 - Each printer directory has a `macros` symlink to `macros/`, included as `[include macros/<file>.cfg]`.
@@ -210,7 +210,7 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
 
 #### Public `*_NOTIFY` macros
 
-- All eight no-op defaults live together in `notify.cfg`, regardless of caller — this is the one place to see the full set. Each is safe to call from any printer.
+- All seven no-op defaults live together in `notify.cfg`, regardless of caller — this is the one place to see the full set. Each is safe to call from any printer.
 - `_PRINT_START_NOTIFY` — blue. Normal start sequence, nothing to report.
   - Called three times from `PRINT_START`:
     - At the very top, before homing/heating: `MSG="🖨️ Print started! Hotend: {target_extruder}c, Bed: {target_bed}c"`.
@@ -233,14 +233,10 @@ Status (LED + console + Telegram + LCD) uses a public/private split: public `*_N
   - The hook invokes it bare (no params), so its override states a static `MSG="▶️ Print resumed."`.
   - Being a solid color, it cancels any in-progress pulse, so resuming from an attention pause clears it immediately.
 - `_CANCEL_NOTIFY` — called from `_PRINT_CANCEL`, `mainsail.cfg`'s `user_cancel_macro` hook (also bare, no params).
-- `_SHUTDOWN_NOTIFY` — purple. Called bare (static `MSG`) by the host's `klipper-shutdown-notify.service` (ansible `klipper` role) on poweroff, so you know it's safe to cut power.
-  - Its `ExecStop` runs just before klipper/moonraker stop (it's ordered `After=` them, and stop order is reversed). Neopixels latch the color once the host is gone.
-  - It fires a few seconds before the real halt, since unmount and halt still follow. Wait a beat before flipping the switch.
-  - Only fires when `systemctl list-jobs` shows `poweroff`/`halt.target`, so a reboot doesn't claim it's safe.
 
 #### Per-printer overrides
 
-- Both printers have a light and override all eight in their own `status_leds.cfg` by plain redefinition (no `rename_existing`).
+- Both printers have a light and override all seven in their own `status_leds.cfg` by plain redefinition (no `rename_existing`).
 - Each override calls `_LED_SET NAME=<color> LED=<their light> MSG=...`, forwarding the caller's `MSG` (or a static one where the call site can't pass params).
   - klipper-vs-146: `LED=enclosure,hotend_rgb:1:0.05` (enclosure is RGB; the unused `WHITE` component is harmless to pass).
     - `hotend_rgb:1:0.05` is the Stealthburner logo pixel only, at 5% of the enclosure's color — the user wants it dim.
@@ -259,7 +255,6 @@ Deliberately tight, same meaning on both printers:
 - `orange` — heating/warming up, not a problem (`_HEAT_SOAK_NOTIFY`).
 - `yellow` pulsing — needs your attention (`_ATTENTION_NOTIFY`).
 - `green` — done (`_PRINT_END_NOTIFY`).
-- `purple` — host is powering off, safe to cut power (`_SHUTDOWN_NOTIFY`).
 - `red` — intentionally unused, reserved for a real fault. Don't repurpose it for heating or any other non-error state.
 - `off`/`white` — general-purpose presets in `_LED_COLOR`, not tied to a lifecycle indicator.
 
@@ -428,7 +423,7 @@ Deliberately tight, same meaning on both printers:
   - klipper-vs-146 also uses `[autotune_tmc]` per stepper.
   - The bottom `SAVE_CONFIG` block (PID tunes, bed mesh, probe/endstop offsets) is Klipper-generated and independent per printer — never hand-edit below `#*# <---------------------- SAVE_CONFIG ---------------------->`.
 - Printer-local macros live in topic files next to `printer.cfg`, not inline:
-  - `status_leds.cfg` — the eight `*_NOTIFY` overrides.
+  - `status_leds.cfg` — the seven `*_NOTIFY` overrides.
   - `client_variables.cfg` — `_CLIENT_VARIABLE`.
   - klipper-vs-146 only: `bed_level.cfg` (`CHECK_BED_LEVEL`, `SCREWS_TILT_CALCULATE`/`_SCREWS_TILT_CHECK`, `G32`), `clean_nozzle.cfg`, `bed_fan.cfg` (`BED_FANS`).
 - These are included in one block **after** every `macros/*.cfg` include. Keep that order — Klipper merges same-named macros last-wins, so otherwise a shared no-op default silently replaces the real override.
