@@ -199,7 +199,10 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
   - It replaced `TEMPERATURE_WAIT_WITH_TIMEOUT`, a Jinja workaround that unrolled the timed wait into `_TEMPERATURE_WAIT_STEP` + `G4` calls since Jinja renders once.
 - Context: `params` (string values), live `printer[...]`, `emit()`, `sleep()`, `respond_info()`, `action_raise_error()`, `math`. No clock is exposed, so timeouts count `sleep()` iterations.
 - `sleep()` polls every 1s and raises on a gcode interrupt (cancel) or shutdown, so a cancel aborts mid-wait.
-- The script runs as `exec(code, globals, {})`: top-level names land in a separate locals dict, so a `def`/`lambda`/comprehension can't see them. Keep logic inline.
+- The script runs as `exec(code, globals, {})`: top-level names land in a separate locals dict, so a `def`/`lambda`/comprehension can't see them.
+  - `heat_soak.py` lists its helper functions in a top-level `global` statement, so they bind into globals and can call each other. Pass everything else in as arguments.
+  - Safe because Kalico builds a fresh globals dict per run. The `global` lines need `PLW0604` in the file's `ruff: noqa`.
+  - Format `.py` macros the way the user's Neovim does on save: Mason's `ruff check --fix`, `ruff format`, then `ruff check --fix --select=I001`.
 - Inline `!` Python only: `;` and whitespace-preceded `#` are still stripped as config comments, even inside strings.
 
 ### Nozzle cleaning (`CLEAN_NOZZLE_PARK` / `CLEAN_NOZZLE`)
