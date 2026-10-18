@@ -186,7 +186,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 - Two phases on the shared `temperature_sensor chamber_temp`; skipped if no target is set above 0.
   1. Uncapped wait for `CHAMBER_MINIMAL` (or `CHAMBER` if unset) — a minimum the chamber can't reach will hang the print.
   2. Fans still on, an in-macro `sleep()` loop toward `CHAMBER` for at most `PRINT_START`'s `CHAMBER_SOAK` seconds (default 1800 = 30 min); ends as soon as `CHAMBER` is reached.
-     - Also ends early if the chamber rises less than `STALL_RISE` (0.5C) per `STALL_WINDOW` (300s; `0` disables), since a plateau below `CHAMBER` would otherwise idle out the full soak. `PRINT_START` doesn't forward these, so the defaults apply.
+     - Also ends early if the chamber rises less than `STALL_RISE` (0.7C, from a 2026-10-18 ASA soak: saved 15 of 30 min for 1.4C) per `STALL_WINDOW` (300s; `0` disables), since a plateau below `CHAMBER` would otherwise idle out the full soak. `PRINT_START` doesn't forward these, so the defaults apply.
      - Phase 1 has no stall exit — `CHAMBER_MINIMAL` stays a hard floor.
 - OrcaSlicer enforces `chamber_temperature >= chamber_minimal_temperature`, so `CHAMBER` is the soak goal and `CHAMBER_MINIMAL` the hard floor.
 
