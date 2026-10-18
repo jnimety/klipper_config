@@ -11,6 +11,7 @@ klipper_config/
 │   ├── debug.cfg              # DUMP_PARAMETERS
 │   ├── filament.cfg           # LOAD_FILAMENT/UNLOAD_FILAMENT, M600, tip shaping
 │   ├── heat_soak.cfg          # HEAT_SOAK (chamber wait), M141/M191
+│   ├── heat_soak.py           # HEAT_SOAK body (Kalico Python macro)
 │   ├── mainsail.cfg           # stock Mainsail client macros (PAUSE/RESUME/CANCEL_PRINT), vendored, used by both printers
 │   ├── mpc.cfg                # _SET_MPC_MATERIAL
 │   ├── notify.cfg             # _LED_SET + no-op *_NOTIFY defaults

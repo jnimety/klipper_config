@@ -26,8 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `print_start.cfg` — `PRINT_START` plus no-op defaults for its printer hooks
   - `print_end.cfg` — `PRINT_END`
   - `park.cfg` — `PARK`
-  - `heat_soak.cfg` — `HEAT_SOAK`
-  - `temperature_wait.cfg` — `TEMPERATURE_WAIT_WITH_TIMEOUT`
+  - `heat_soak.cfg` — `HEAT_SOAK` (body in `heat_soak.py`), `M141`/`M191` no-ops
   - `notify.cfg` — no-op defaults for all seven `*_NOTIFY` macros, plus `_LED_SET`/`_LED_COLOR`
   - `filament.cfg` — `LOAD_FILAMENT`, `UNLOAD_FILAMENT`, `M600`, `_TIP_SHAPING`
   - `mainsail.cfg` — vendored client macro pack (`PAUSE`/`RESUME`/`CANCEL_PRINT` etc.)
@@ -186,8 +185,20 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 
 - Two phases on the shared `temperature_sensor chamber_temp`; skipped if no target is set above 0.
   1. Uncapped wait for `CHAMBER_MINIMAL` (or `CHAMBER` if unset) — a minimum the chamber can't reach will hang the print.
-  2. Fans still on, `TEMPERATURE_WAIT_WITH_TIMEOUT` toward `CHAMBER` for at most `PRINT_START`'s `CHAMBER_SOAK` seconds (default 1800 = 30 min).
+  2. Fans still on, an in-macro `sleep()` loop toward `CHAMBER` for at most `PRINT_START`'s `CHAMBER_SOAK` seconds (default 1800 = 30 min); ends as soon as `CHAMBER` is reached.
 - OrcaSlicer enforces `chamber_temperature >= chamber_minimal_temperature`, so `CHAMBER` is the soak goal and `CHAMBER_MINIMAL` the hard floor.
+
+### Python macros (Kalico)
+
+- `HEAT_SOAK` is a Kalico Python macro whose body lives in `macros/heat_soak.py`, loaded by `gcode: !!include heat_soak.py`.
+  - `!!include` paths resolve relative to the including `.cfg`, so it works through each printer's `macros` symlink.
+  - The `.py` is read raw: no `!` prefixes, and config comment stripping doesn't touch it. Editing it needs a Klipper restart.
+  - Inline alternative: `!`-prefix every `gcode:` line; one macro can't mix Python and Jinja.
+  - It replaced `TEMPERATURE_WAIT_WITH_TIMEOUT`, a Jinja workaround that unrolled the timed wait into `_TEMPERATURE_WAIT_STEP` + `G4` calls since Jinja renders once.
+- Context: `params` (string values), live `printer[...]`, `emit()`, `sleep()`, `respond_info()`, `action_raise_error()`, `math`. No clock is exposed, so timeouts count `sleep()` iterations.
+- `sleep()` polls every 1s and raises on a gcode interrupt (cancel) or shutdown, so a cancel aborts mid-wait.
+- The script runs as `exec(code, globals, {})`: top-level names land in a separate locals dict, so a `def`/`lambda`/comprehension can't see them. Keep logic inline.
+- Inline `!` Python only: `;` and whitespace-preceded `#` are still stripped as config comments, even inside strings.
 
 ### Nozzle cleaning (`CLEAN_NOZZLE_PARK` / `CLEAN_NOZZLE`)
 
