@@ -21,7 +21,7 @@
 	"inherits": "Polymaker ASA Grey",
 	"name": "Polymaker ASA Grey @VS.146 0.6",
 	"pressure_advance": [
-		"0.001"
+		"0.03"
 	],
 	"version": "2.4.0.3"
 }
