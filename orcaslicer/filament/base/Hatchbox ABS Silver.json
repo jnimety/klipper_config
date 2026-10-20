@@ -1,7 +1,4 @@
 {
-	"activate_chamber_temp_control": [
-		"1"
-	],
 	"chamber_minimal_temperature": [
 		"45"
 	],

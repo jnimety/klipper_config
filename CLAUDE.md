@@ -59,6 +59,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
   - Bed type is ignored on both printers: the Voron vendor parents set `support_multi_bed_types: "0"`, so every plate uses `hot_plate_temp*` (shown as "Smooth PEI Plate / High Temp Plate") even though both actually run textured PEI.
     - Don't set `default_bed_type` or other `*_plate_temp` keys; they're never read unless `support_multi_bed_types` is turned on.
+  - Every machine preset sets `support_chamber_temp_control: "0"` (no chamber heater), and no filament turns on `activate_chamber_temp_control`.
+    - The machine flag is GUI-only: it shows the filament's "Activate temperature control" checkbox and a material-safe-temp warning. Orca's default is `true`.
+    - The filament flag alone emits `M191 S<chamber>` before the start gcode and `M141 S0` after the end, even when the machine flag hides its checkbox (checked in Orca 2.4.2's `GCode.cpp`).
+    - The chamber target reaches `HEAT_SOAK` via `PRINT_START`'s `CHAMBER=`/`CHAMBER_MINIMAL=` either way; `heat_soak.cfg`'s `M141`/`M191` no-ops are only a safety net.
   - VS.146 has a machine + process preset per nozzle (Revo swaps), selected in Orca by picking the printer:
     - 0.4: `Voron Switchwire 235 0.4 nozzle - VS.146` + `0.20mm Standard @Voron - VS.146`.
     - 0.6: `Voron Switchwire 235 0.6 nozzle - VS.146` (inherits Orca's 0.6 Switchwire) + `0.30mm Standard 0.6 nozzle @Voron - VS.146`.
