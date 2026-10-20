@@ -491,6 +491,14 @@ Deliberately tight, same meaning on both printers:
   - As a `controller_fan` (steppers + extruder) it switched off after `PRINT_END`, and the Pi hit 85C and throttled (`get_throttled=0xe0006`).
   - Cause: `camera-streamer` keeps the Pi at ~50% CPU while idle, plus residual heat from the cooling bed.
 
+### klipper-vs-146 steppers
+
+- X/Y/Z run `microsteps: 64` with `interpolate: false`, chosen by a 2026-10-20 Orca VFA-tower comparison (same exported gcode, Polymaker ASA Grey) that it won over 32/true and 64/true.
+  - This goes against the autotune README, which recommends `interpolate: true` with as many microsteps as feasible; the test result wins here.
+  - Main-MCU (F103) load stayed trivial: average busy 1.1% at 32 → 1.5% at 64, peak 6%. Don't go past 64 on this board without re-checking.
+  - `stepper_x` and `stepper_z` are the corexz A/B belt motors, so keep their microsteps identical.
+- The extruder (G2E, 9:1) stays at the G2 docs' 16 microsteps with `interpolate: true`; one microstep is ~1.6µm of filament, so interpolation lag doesn't matter there.
+
 ### klipper-vs-146 fans (Big P4ppa HAT)
 
 - Pi-side fans hang off a Big P4ppa v1 HAT ([gcormier/bigp4ppa](https://github.com/gcormier/bigp4ppa)).
