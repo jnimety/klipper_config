@@ -525,6 +525,17 @@ Deliberately tight, same meaning on both printers:
 - `BED_FANS` leaves targets under `threshold` (PLA/PETG) fan-free.
 - Why watermark: with the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater`.
   - `verify_heater` requires 2C/60s gain until within 5C of target; the watermark keeps the bed out of that window by construction.
+  - Kept after the AC pad swap as a safety net; `max_speed` went from 0.1 (the most the 24V heater could carry through a soak) to a 1.0 starting point, pending a soak.
+
+### klipper-vs-146 bed heater
+
+- A 120V 350W Keenovo 235×235 silicone pad, switched by a zero-cross SSR from the SKR Mini's bed output (PC9); replaced the stock 220W 24V Ender heater on 2026-10-20.
+  - SSR: Omron G3NA-210B-UTU (10A, 5–24VDC input, built-in zero-cross), its base bolted to a frame extrusion in the electronics bay as the heat sink (~2.9A load, ~4–5W dissipated).
+  - The 24V heater was the chamber-temp ceiling: the bed fans starved it (see [Bed fans](#bed-fans-bed_fan--bed_fans)).
+  - A 24V 350W pad was ruled out: the LRS-350-24 PSU can't carry it plus everything else, and the SKR Mini's bed output isn't rated for ~14.6A.
+- `sensor_type: Generic 3950` is the pad's embedded NTC 100K (β25/50 3950K); the old Ender 104GT-2 bed thermistor is retired.
+- `pwm_cycle_time: 0.02088` suits the zero-cross SSR on 60Hz mains; Klipper's 0.1 default is for DC beds.
+- Re-run `PID_CALIBRATE HEATER=heater_bed` after any heater change; the `SAVE_CONFIG` PID block predates the pad until then.
 
 ## Scripts
 
