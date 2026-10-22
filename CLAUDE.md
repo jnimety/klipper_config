@@ -525,7 +525,8 @@ Deliberately tight, same meaning on both printers:
 - `BED_FANS` leaves targets under `threshold` (PLA/PETG) fan-free.
 - Why watermark: with the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater`.
   - `verify_heater` requires 2C/60s gain until within 5C of target; the watermark keeps the bed out of that window by construction.
-  - Kept after the AC pad swap as a safety net; `max_speed` went from 0.1 (the most the 24V heater could carry through a soak) to a 1.0 starting point, pending a soak.
+  - Kept after the AC pad swap as a safety net; `max_speed` went from 0.1 (the most the 24V heater could carry through a soak) to 1.0.
+    - 2026-10-21 soak test (bed 110, cold start): bed held 110 ±0.1C with the fans at 1.0, bed power falling ~80% → 62% as the chamber climbed ~0.6C/min.
 
 ### klipper-vs-146 bed heater
 
@@ -535,7 +536,13 @@ Deliberately tight, same meaning on both printers:
   - A 24V 350W pad was ruled out: the LRS-350-24 PSU can't carry it plus everything else, and the SKR Mini's bed output isn't rated for ~14.6A.
 - `sensor_type: Generic 3950` is the pad's embedded NTC 100K (β25/50 3950K); the old Ender 104GT-2 bed thermistor is retired.
 - `pwm_cycle_time: 0.02088` suits the zero-cross SSR on 60Hz mains; Klipper's 0.1 default is for DC beds.
-- Re-run `PID_CALIBRATE HEATER=heater_bed` after any heater change; the `SAVE_CONFIG` PID block predates the pad until then.
+- Re-run `PID_CALIBRATE HEATER=heater_bed` after any heater change; the pad was tuned at 105 on 2026-10-21.
+- Mains wiring to the moving bed:
+  - Chain cable: igus chainflex CF130.07.03 (3×0.75mm² ≈ 18 AWG, PVC, 300V) carrying L, N and earth.
+  - Its PVC jacket isn't rated for the hot plate, so it stops at the bed carriage and splices (Wago 221) to the pad's thicker high-temp leads, kept full length.
+  - ~5A slow-blow fuse on L before the SSR; the 18 AWG chain cable is the smallest conductor it protects.
+  - The pad has no built-in thermal fuse, so a separate ~150C one is RTV'd to the pad's back, in series on L between the SSR and the pad.
+  - The thermistor runs on its own wire to the SKR's TB header, kept apart from the mains splices.
 
 ## Scripts
 
