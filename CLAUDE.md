@@ -153,12 +153,16 @@ Pick the pattern that matches the macro being shared:
 - **Do not hand-edit it** — keep byte-identical; re-copy wholesale from upstream instead.
 - Needs no per-printer extension point: it reads everything hardware-specific from `printer.configfile`/`printer.toolhead`/`printer.exclude_object`.
   - Nozzle/filament diameter, `max_extrude_cross_section`, bed bounds, live `[exclude_object]` polygons for adaptive positioning.
-- Both printers call it identically: `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim}` (it replaced a param-less `PRIME_LINE`).
+- Both printers call it identically: `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim} START_X=... START_Y=...` (it replaced a param-less `PRIME_LINE`).
   - `[exclude_object]` polygons from Orca exclude the brim, so the default 10mm margin (squiggle 7.5–12.5mm out) overlapped a 10mm brim.
   - Every machine preset passes `BRIM=[brim_width]` to `PRINT_START` (default 0); it's the width even when brim type is "no brim", which only adds harmless distance.
   - The purge can't start forward of Y=3.5, so a brimmed part within ~20mm of the front edge can still overlap.
-- Every Orca machine preset (both printers) sets `bed_exclude_area` X0–60/Y0–12 so parts stay off the purge's default front-left spot (where it lands when the plate is full).
-  - Sized to the default-start footprint: X5–55 (10 periods × 5mm), Y3.5–8.5 (5mm amplitude) plus the ~1.75mm bead.
+- `START_X`/`START_Y` come from each printer's `_CLIENT_VARIABLE` `purge_start_x`/`purge_start_y` (where the purge lands when the plate is full):
+  - klipper-vs-146: X230/Y3.5, front-right — a start right of center runs leftward, so it lands X180–230, just behind the brush (X188.5–225.5, Y-6).
+  - klipper-v0-4432: X5/Y3.5, the macro's own front-left default (X5–55).
+  - Adaptive mode mirrors the start across the bed center when every object is on the other side.
+- Every Orca machine preset sets a `bed_exclude_area` over that default footprint so parts stay off it: vs-146 X175–235/Y0–12, v0-4432 X0–60/Y0–12.
+  - Sized to the footprint: 50mm along X (10 periods × 5mm), Y3.5–8.5 (5mm amplitude), plus the ~1.75mm bead.
   - Re-check it if `PURGE_LENGTH`/`PERIODS`/`PERIOD_LENGTH`/`AMPLITUDE` on the `print_start.cfg` call change.
 - Both printers set `max_extrude_cross_section: 1.1` (mm²) explicitly, sized to clear that purge without the macro's self-correction.
   - The stock `LINE_HEIGHT=0.6` needs roughly 1.05 mm² for a 50mm purge at default squiggle geometry, so no `action_respond_info` correction fires.
@@ -182,7 +186,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
   - klipper-v0-4432: no-op (no probe).
   - There is no separate `LOAD_BED_MESH` hook. A printer that wants a saved profile should load it inside its own `CHECK_BED_LEVEL` rather than adding a second hook.
 - `CLEAN_NOZZLE_PARK` → `M109` → `CLEAN_NOZZLE` for the final hotend heat (see below).
-- `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim}`.
+- `SQUIGGLY_PURGE PURGE_LENGTH=50 LINE_MARGIN={10 + brim}` at the printer's `purge_start_x`/`purge_start_y`.
 - Adding a new printer-specific step: call a same-named macro unconditionally and give every printer an implementation, even if a no-op.
 
 ### `HEAT_SOAK`
