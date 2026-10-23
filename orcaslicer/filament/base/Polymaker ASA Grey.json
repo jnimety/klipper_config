@@ -39,6 +39,9 @@
 		"99.28%"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"25"
+	],
 	"hot_plate_temp": [
 		"105"
 	],

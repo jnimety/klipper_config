@@ -18,6 +18,9 @@
 		"Polymaker ASA Grey @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Polymaker ASA Grey",
 	"name": "Polymaker ASA Grey @VS.146 0.6",
 	"pressure_advance": [
