@@ -57,6 +57,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Bases must live in `base/`: Orca can't resolve a user preset inheriting a sibling user preset ([OrcaSlicer#9536](https://github.com/OrcaSlicer/OrcaSlicer/issues/9536)), but loads `base/` first. One level only — a base can't inherit another base.
     - On save Orca drops any child value equal to its base's, so a base edit to a typically-per-printer setting can silently retune a printer.
     - Voron's vendor pack no longer ships filament presets; the generic bases inherit `Generic ABS @System`/`Generic PLA @System` instead.
+    - Every ABS/ASA/PC base sets its own `overhang_fan_speed`: Orca's system bases default it to 80/80/60, far above these filaments' `fan_max_speed`.
+      - `internal_bridge_fan_speed` stays at its `-1` default, which follows `overhang_fan_speed`, so one value covers overhangs and internal bridges.
   - Bed type is ignored on both printers: the Voron vendor parents set `support_multi_bed_types: "0"`, so every plate uses `hot_plate_temp*` (shown as "Smooth PEI Plate / High Temp Plate") even though both actually run textured PEI.
     - Don't set `default_bed_type` or other `*_plate_temp` keys; they're never read unless `support_multi_bed_types` is turned on.
   - Every machine preset sets `support_chamber_temp_control: "0"` (no chamber heater), and no filament turns on `activate_chamber_temp_control`.
@@ -73,6 +75,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Structural: 40% infill, 5 top / 5 bottom shells, 0.8mm top thickness, alternate extra wall on.
       - Ensure vertical shell thickness is Moderate, not Standard's All: Orca prompts to change it, since the two don't work well together.
     - Otherwise identical — mirror any other process tweak to both variants.
+    - All of them set `align_infill_direction_to_model: "1"`, so infill and solid-fill angles rotate with the part on the plate.
     - `printer.cfg`'s `nozzle_diameter` deliberately stays `0.400` across swaps: on vs-146 Kalico only uses it for defaults that are set explicitly (`max_extrude_cross_section`, `max_extrude_only_*`).
 - See `README.md` for the full directory tree and the deployment runbook.
   - Each host clones this repo to `~/klipper_config` and symlinks `~/printer_data/config` to `~/klipper_config/printers/<hostname>`.

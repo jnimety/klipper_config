@@ -1,7 +1,7 @@
 {
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "50%",
-	"align_infill_direction_to_model": "0",
+	"align_infill_direction_to_model": "1",
 	"alternate_extra_wall": "0",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.6",

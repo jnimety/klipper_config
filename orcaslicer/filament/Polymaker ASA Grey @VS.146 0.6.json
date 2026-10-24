@@ -29,8 +29,5 @@
 	],
 	"inherits": "Polymaker ASA Grey",
 	"name": "Polymaker ASA Grey @VS.146 0.6",
-	"overhang_fan_speed": [
-		"40"
-	],
 	"version": "2.4.0.3"
 }

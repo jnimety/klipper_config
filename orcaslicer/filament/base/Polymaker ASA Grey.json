@@ -62,5 +62,8 @@
 	"nozzle_temperature_range_low": [
 		"230"
 	],
+	"overhang_fan_speed": [
+		"30"
+	],
 	"version": "2.4.0.3"
 }
