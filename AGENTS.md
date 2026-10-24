@@ -177,6 +177,7 @@ Pick the pattern that matches the macro being shared:
 Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 
 - `_PRINT_START_NOTIFY` at the very top (see [Status notifications](#status-notifications)).
+- `M104 S150` before the bed heats, so the hotend sits at 150 through heat-up and `HEAT_SOAK`; vs-146's `CHECK_BED_LEVEL` `M109 S150` then returns immediately.
 - Heats the bed itself with `M190` (generic — both printers have `[heater_bed]`).
 - `BED_FANS BED=<target>` right before `M190`, so fans run while the bed heats.
   - `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS`; `CANCEL_PRINT` does via `_PRINT_CANCEL`.
