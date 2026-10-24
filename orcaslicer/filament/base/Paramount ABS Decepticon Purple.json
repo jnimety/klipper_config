@@ -46,7 +46,10 @@
 		"2"
 	],
 	"hot_plate_temp": [
-		"105"
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
 	],
 	"inherits": "Generic ABS @System",
 	"name": "Paramount ABS Decepticon Purple",

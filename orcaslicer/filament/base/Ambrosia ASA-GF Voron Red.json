@@ -43,10 +43,10 @@
 	],
 	"from": "User",
 	"hot_plate_temp": [
-		"105"
+		"110"
 	],
 	"hot_plate_temp_initial_layer": [
-		"105"
+		"110"
 	],
 	"inherits": "Generic ASA @System",
 	"name": "Ambrosia ASA-GF Voron Red",

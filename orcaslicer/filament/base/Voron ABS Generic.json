@@ -36,6 +36,12 @@
 	"full_fan_speed_layer": [
 		"2"
 	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
 	"inherits": "Generic ABS @System",
 	"is_custom_defined": "0",
 	"name": "Voron ABS Generic",
