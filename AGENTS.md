@@ -178,7 +178,7 @@ Sequence and printer hooks (no-op defaults for hooks live in `print_start.cfg`):
 
 - `_PRINT_START_NOTIFY` at the very top (see [Status notifications](#status-notifications)).
 - Heats the bed itself with `M190` (generic — both printers have `[heater_bed]`).
-- `BED_FANS BED=<target>` right after `M190` settles.
+- `BED_FANS BED=<target>` right before `M190`, so fans run while the bed heats.
   - `PRINT_END` calls `BED_FANS BED=0` after `TURN_OFF_HEATERS`; `CANCEL_PRINT` does via `_PRINT_CANCEL`.
   - vs-146 overrides it — see [klipper-vs-146 fans](#klipper-vs-146-fans-big-p4ppa-hat).
 - `HEAT_SOAK` — see below.
@@ -512,7 +512,7 @@ Deliberately tight, same meaning on both printers:
   - Five AO3402 low-side MOSFET outputs, hardwired left to right to gpio12/13/18/26/23, each with its own 5V/12V/24V jumper.
   - v1 silkscreen mislabels outputs 4 and 5 as "GPIO19" — no output is on gpio19.
 - Output assignments:
-  - Out 1, gpio12 / PWM0 — `[temperature_fan bed_fan]`.
+  - Out 1, gpio12 / PWM0 — `[fan_generic bed_fan]`.
   - Out 2, gpio13 / PWM1 — `[heater_fan case]` (24V 2-wire fan).
   - Out 3, gpio18 — always-on `raspberry_pi_fan` (`[static_digital_output]`); gpio18 can't be hardware PWM anyway (shares PWM0 with gpio12).
 - `bed_fan` and `case` use the Pi 4's two hardware PWM channels (`rpi:pwmchip0/pwm0` / `pwm1`) because the host MCU's jittery software PWM made them hum.
@@ -526,14 +526,15 @@ Deliberately tight, same meaning on both printers:
 #### Bed fans (`bed_fan` / `BED_FANS`)
 
 - Two 2-wire blowers in parallel on the Y carriage, blowing on the bed heater to warm the chamber; replaced the nevermore.
-- Follows Ellis's bed-fan strategy (off while the bed heats, on once at target), implemented as a `watermark` `temperature_fan` reading the bed via `temperature_combined`.
-  - Not Ellis's `rename_existing` `M190`/`M140` overrides + `delayed_gcode` poll loop: a delayed_gcode can't run while `PRINT_START` holds the gcode mutex for the whole soak. Sensor callbacks aren't mutex-bound.
-- `BED_FANS` (`bed_fan.cfg`) sets the watermark `band` C below the bed target, so fans turn on at target and cut out below target−2C.
+- A plain `fan_generic`: `BED_FANS` (`bed_fan.cfg`) sets it to 1.0 right before `PRINT_START`'s `M190`, so the chamber starts warming while the bed heats.
 - `BED_FANS` leaves targets under `threshold` (PLA/PETG) fan-free.
-- Why watermark: with the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater`.
-  - `verify_heater` requires 2C/60s gain until within 5C of target; the watermark keeps the bed out of that window by construction.
-  - Kept after the AC pad swap as a safety net; `max_speed` went from 0.1 (the most the 24V heater could carry through a soak) to 1.0.
-    - 2026-10-21 soak test (bed 110, cold start): bed held 110 ±0.1C with the fans at 1.0, bed power falling ~80% → 62% as the chamber climbed ~0.6C/min.
+- The AC pad has the headroom to run them at full: the 2026-10-21 soak test (bed 110, cold start) held 110 ±0.1C with the fans at 1.0, bed power falling ~80% → 62% as the chamber climbed ~0.6C/min.
+  - That test still had the watermark, so the fans only came on near target; a cold heat-up with them on from the start hasn't been verified yet.
+- Only `BED_FANS BED=0` (`PRINT_END`/`_PRINT_CANCEL`) or a shutdown turns them off; unlike the watermark, they keep running if the heaters go off any other way (e.g. a paused print hitting `idle_timeout`).
+- History: with the stock 220W 24V Ender heater, a plain always-on fan at 1.0/0.4/0.2 stalled the bed short of 105C and tripped `verify_heater` (2C/60s gain required until within 5C of target).
+  - So it was a `watermark` `temperature_fan` on the bed's temp (Ellis's off-while-heating strategy), on only within ~2C of target and capped at 0.1–0.15.
+  - Ellis's `rename_existing` `M190`/`M140` + `delayed_gcode` poll loop was rejected: a delayed_gcode can't run while `PRINT_START` holds the gcode mutex for the whole soak.
+  - If the bed heater ever gets weaker again, revisit this before trusting full fans during `M190`.
 
 ### klipper-vs-146 bed heater
 

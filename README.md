@@ -25,7 +25,7 @@ klipper_config/
     │   ├── printer.cfg
     │   ├── bed_level.cfg      # CHECK_BED_LEVEL, SCREWS_TILT_CALCULATE, G32
     │   ├── clean_nozzle.cfg   # nozzle brush + purge bucket
-    │   ├── bed_fan.cfg        # BED_FANS: arms the bed fans' temperature_fan
+    │   ├── bed_fan.cfg        # BED_FANS: switches the bed fans on/off
     │   ├── status_leds.cfg    # *_NOTIFY LED overrides
     │   ├── client_variables.cfg  # _CLIENT_VARIABLE for mainsail.cfg / filament.cfg
     │   ├── moonraker.conf
