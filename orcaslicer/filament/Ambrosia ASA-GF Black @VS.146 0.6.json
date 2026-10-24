@@ -11,17 +11,11 @@
 	"filament_flow_ratio": [
 		"0.95"
 	],
-	"filament_max_volumetric_speed": [
-		"12"
-	],
 	"filament_settings_id": [
 		"Ambrosia ASA-GF Black @VS.146 0.6"
 	],
 	"from": "User",
 	"inherits": "Ambrosia ASA-GF Black",
 	"name": "Ambrosia ASA-GF Black @VS.146 0.6",
-	"pressure_advance": [
-		"0.03"
-	],
 	"version": "2.4.0.3"
 }
