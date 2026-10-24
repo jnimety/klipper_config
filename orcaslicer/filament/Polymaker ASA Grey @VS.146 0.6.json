@@ -21,10 +21,16 @@
 	"full_fan_speed_layer": [
 		"17"
 	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
 	"inherits": "Polymaker ASA Grey",
 	"name": "Polymaker ASA Grey @VS.146 0.6",
-	"pressure_advance": [
-		"0.03"
+	"overhang_fan_speed": [
+		"40"
 	],
 	"version": "2.4.0.3"
 }
