@@ -18,6 +18,9 @@
 		"Voron ABS Generic @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Voron ABS Generic",
 	"name": "Voron ABS Generic @VS.146 0.6",
 	"pressure_advance": [

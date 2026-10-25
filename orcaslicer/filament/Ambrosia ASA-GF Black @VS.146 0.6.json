@@ -15,6 +15,9 @@
 		"Ambrosia ASA-GF Black @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Ambrosia ASA-GF Black",
 	"name": "Ambrosia ASA-GF Black @VS.146 0.6",
 	"version": "2.4.0.3"

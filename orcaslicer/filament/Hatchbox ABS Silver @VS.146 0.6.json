@@ -15,6 +15,9 @@
 		"Hatchbox ABS Silver @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Hatchbox ABS Silver",
 	"is_custom_defined": "0",
 	"name": "Hatchbox ABS Silver @VS.146 0.6",

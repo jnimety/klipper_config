@@ -15,6 +15,9 @@
 		"Hatchbox ABS Transparent Blue @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Hatchbox ABS Transparent Blue",
 	"is_custom_defined": "0",
 	"name": "Hatchbox ABS Transparent Blue @VS.146 0.6",

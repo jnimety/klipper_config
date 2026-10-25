@@ -18,6 +18,9 @@
 		"Ambrosia ASA-GF Voron Red @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Ambrosia ASA-GF Voron Red",
 	"name": "Ambrosia ASA-GF Voron Red @VS.146 0.6",
 	"pressure_advance": [

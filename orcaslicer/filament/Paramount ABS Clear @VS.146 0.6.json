@@ -15,6 +15,9 @@
 		"Paramount ABS Clear @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Paramount ABS Clear",
 	"is_custom_defined": "0",
 	"name": "Paramount ABS Clear @VS.146 0.6",

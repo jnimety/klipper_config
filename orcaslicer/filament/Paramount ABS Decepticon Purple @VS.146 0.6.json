@@ -15,6 +15,9 @@
 		"Paramount ABS Decepticon Purple @VS.146 0.6"
 	],
 	"from": "User",
+	"full_fan_speed_layer": [
+		"17"
+	],
 	"inherits": "Paramount ABS Decepticon Purple",
 	"is_custom_defined": "0",
 	"name": "Paramount ABS Decepticon Purple @VS.146 0.6",
