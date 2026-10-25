@@ -20,8 +20,5 @@
 	"from": "User",
 	"inherits": "Ambrosia ASA Rainbow Rush",
 	"name": "Ambrosia ASA Rainbow Rush @VS.146 0.6",
-	"pressure_advance": [
-		"0.03"
-	],
 	"version": "2.4.0.3"
 }
