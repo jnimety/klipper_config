@@ -72,10 +72,8 @@ firewall_trusted_v4:
 firewall_trusted_v6:
   - fe80::/10
   - ::1/128
-  # AT&T-delegated GUA space, one /64 per VLAN -- same list as this
-  # user's home-network vyos-ansible repo's dns.yaml `allow-from` (the
-  # router itself trusts exactly these ranges), kept explicit here rather
-  # than collapsed to the /61 they aggregate to, matching that precedent.
+  # AT&T-delegated GUA space, one /64 per VLAN, kept explicit rather than
+  # collapsed to the /61 they aggregate to.
   - 2600:1700:27e:1498::/64
   - 2600:1700:27e:1499::/64
   - 2600:1700:27e:149a::/64
@@ -84,8 +82,9 @@ firewall_trusted_v6:
   - 2600:1700:27e:149d::/64
   - 2600:1700:27e:149e::/64
   - 2600:1700:27e:149f::/64
-  # The router's ULA prefix: macOS prefers ULA-to-ULA, so .local lookups
-  # connect over these addresses first.
+  # The router's ULA prefix, one /64 per VLAN (fd0c:f6f1:d348:<vlan>::/64).
+  # macOS prefers ULA-to-ULA, so .local lookups connect over these first.
+  # The router's own DNS forwarding allow-from trusts all ULA (fc00::/7).
   - fd0c:f6f1:d348::/48
 
 # rpi-swap's forced traditional-swapfile size (MiB) -- see base role.
