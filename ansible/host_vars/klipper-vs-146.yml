@@ -10,8 +10,8 @@ webcam_max_fps: 30
 # In the wide FOV, the enclosure's blue status LED (see notify.cfg) blew
 # out to solid white against the dark interior under default auto-exposure.
 # AeConstraintMode=1 (libcamera "Highlight" mode) biases AE to protect
-# highlights instead of metering for the whole dark scene, plus a modest
-# negative ExposureValue on top. Left AE enabled (no manual exposure lock)
+# highlights instead of metering for the whole dark scene; a negative
+# ExposureValue on top proved unnecessary. Left AE enabled (no manual exposure lock)
 # since the LED's color/brightness changes across print phases. Tried
 # HdrMode=2 (sensor multi-exposure merge) instead -- made it worse, since
 # HDR tone-mapping lifts shadow/midtone brightness and can't fix lens
@@ -22,7 +22,7 @@ webcam_max_fps: 30
 # Auto AWB can't neutralize the near-monochrome blue print light (renders
 # solid blue; presets barely differ), so fixed ColourGains (red up, blue
 # down) plus Saturation=0.4 recover detail; orange phases just read warm.
-webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"ExposureValue=-0.7\" --camera-options=\"FrameDurationLimits=33333,100000\" --camera-options=\"AeExposureMode=2\" --camera-options=\"ColourGains=3.5,0.7\" --camera-options=\"Saturation=0.4\" --camera-hflip --camera-vflip"
+webcam_custom_flags: "--camera-nbufs=4 --camera-video.height=1296 --camera-stream.height=1296 --camera-snapshot.height=1296 --camera-options=\"AfMode=2\" --camera-options=\"AeConstraintMode=1\" --camera-options=\"FrameDurationLimits=33333,100000\" --camera-options=\"AeExposureMode=2\" --camera-options=\"ColourGains=3.5,0.7\" --camera-options=\"Saturation=0.4\" --camera-hflip --camera-vflip"
 # Observed 2026-09-06: after a reboot (likely from a libcamera package
 # upgrade), crowsnest.service started before the libcamera/Unicam
 # pipeline for this CSI camera was fully up. camera-streamer's one open
