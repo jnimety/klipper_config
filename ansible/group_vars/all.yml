@@ -84,6 +84,9 @@ firewall_trusted_v6:
   - 2600:1700:27e:149d::/64
   - 2600:1700:27e:149e::/64
   - 2600:1700:27e:149f::/64
+  # The router's ULA prefix: macOS prefers ULA-to-ULA, so .local lookups
+  # connect over these addresses first.
+  - fd0c:f6f1:d348::/48
 
 # rpi-swap's forced traditional-swapfile size (MiB) -- see base role.
 # Both printers' hosts have plenty of SD card headroom (13G+ free), so
