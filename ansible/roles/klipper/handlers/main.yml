@@ -11,6 +11,8 @@
     return_content: true
   register: klipper_print_stats
   ignore_errors: true
+  # A read-only GET; run it in --check too so the guard below has data.
+  check_mode: false
 
 # Moonraker being unreachable (e.g. first-ever bootstrap, before klipper
 # has ever started) means there's nothing printing yet -- only block the
